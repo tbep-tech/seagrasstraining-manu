@@ -1,0 +1,91 @@
+---
+format: 
+  docx:
+    reference-doc: my_styles.docx
+    number-sections: true
+title: "Title"
+bibliography: refs.bib
+csl: estuaries-and-coasts.csl
+crossref: 
+  fig-title: Fig.
+author:
+  - Marcus W Beck:
+      email: mbeck@tbep.org
+      orcid: 0000-0002-4996-0059
+      institute: [TBEP]
+      correspondence: true
+  - Kerry Flaherty-Walia:
+      email: kfwalia@tbep.org
+      orcid: 0000-0002-6032-0570
+      institute: [TBEP]
+      correspondence: false
+  - Sheila Scolaro-Moffatt:
+      email: sscolaro@tbep.org
+      orcid: 0000-0003-3220-3737
+      institute: [TBEP]
+      correspondence: false
+
+institute:
+  - TBEP: Tampa Bay Estuary Program, 263 13th Ave S., Suite 350, St. Petersburg, Florida 33701 USA
+
+filters: 
+  - templates/scholarly-metadata.lua
+  - templates/author-info-blocks.lua
+  
+execute: 
+  echo: false
+  warning: false
+  ft.keepnext: false
+  ft.align: left
+---
+
+```{r}
+#| results: hide
+library(knitr)
+library(flextable)
+library(here)
+library(dplyr)
+library(tidyr)
+
+source(here('R/funcs.R'))
+```
+
+## Abstract {.unnumbered}
+
+Text
+
+*Key words*:
+
+{{< pagebreak >}}
+
+## Introduction 
+
+
+## Methods
+
+
+## Results
+
+
+## Discussion
+
+
+{{< pagebreak >}}
+
+## Figures {.unnumbered}
+
+{{< pagebreak >}}
+
+## Tables {.unnumbered}
+
+
+{{< pagebreak >}}
+
+## Data Availability {.unnumbered}
+
+All data and analysis code for this manuscript is available on GitHub at <https://github.com/tbep-tech/seagrasstraining-manu>.
+
+## Acknowledgments {.unnumbered}
+
+
+## References {.unnumbered}
