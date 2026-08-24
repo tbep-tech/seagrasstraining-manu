@@ -60,14 +60,26 @@ Text
 
 ## Introduction 
 
+importance of monitoring
+
+local context
+
+difficulty in precision/accuracy, examples with known biases
+
+methods to assess precision/accuracy
+
+goals: present a reproducible framework for assessing precision among disparate groups, determine if training efforts have improved precision using the framework
 
 ## Methods
 
+history of transect monitoring
 
 ## Results
 
 
 ## Discussion
+
+limitations - truth is not known
 
 
 {{< pagebreak >}}
