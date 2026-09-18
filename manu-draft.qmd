@@ -74,12 +74,18 @@ goals: present a reproducible framework for assessing precision among disparate 
 
 history of transect monitoring
 
+note that we can't run trend analyses on converted scores - these are always rescaled each year, since the primary goal is to serve as a motivating example each year.  To assess trends, we really need to look at how avg raw differences have changed over time (see scratch.R). 
+
 ## Results
 
 
 ## Discussion
 
 limitations - truth is not known
+
+what didn't work:
+
+* attempts at discounting group differences by how variable they were between species.  this was done for a species across transects, small sample sizes (e.g., a species at two or three transects) made this measure noisy and not a meaningful assessment of group consistency.  Alternatively, the getween-group variation is a more meaningful measure of certainty, but it describes an entirely different source of variation. 
 
 
 {{< pagebreak >}}
