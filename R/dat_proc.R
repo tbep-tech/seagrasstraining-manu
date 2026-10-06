@@ -21,6 +21,8 @@ save(allyrscrs, file = here('data/allyrscrs.Rdata'), compress = 'xz')
 
 # random-intercept models of score trend by metric ------------------------
 
+load(file = here('data/allyrscrs.RData'))
+
 # FDEP and HC-ES dropped: they have the fewest years of data of the eight groups
 alldat <- allyrscrs |>
   filter(!grp %in% c('FDEP', 'HC-ES')) |>

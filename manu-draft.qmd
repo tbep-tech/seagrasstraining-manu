@@ -81,7 +81,10 @@ note that we can't run trend analyses on converted scores - these are always res
 
 ## Discussion
 
-limitations - truth is not known
+limitations
+* truth is not known
+* discounting abundance scores treats ordinal positions equally, although it's shown that independent observers are more likely to agree on measurements of high abundance compared to lower values, i.e., precision is lower for low abundance (see Jan's paper). Differences at higher abundnace categories could be weighted more. 
+
 
 what didn't work:
 
