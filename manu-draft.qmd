@@ -48,6 +48,10 @@ library(dplyr)
 library(tidyr)
 
 source(here('R/funcs.R'))
+
+load(file = here('tabs/scrmodstab.RData'))
+load(file = here('tabs/spmodstab.RData'))
+load(file = here('tabs/slopetab.RData'))
 ```
 
 ## Abstract {.unnumbered}
@@ -102,10 +106,45 @@ what didn't work:
 
 ## Figures {.unnumbered}
 
+![Flowchart showing the scoring process from steps 1 to 10 for a single group in a given year. Step 3 involves all groups in the focal year and step 8 is a historical baseline from all groups for a set period of past trainings.](figs/scoring_process.png){#fig-scoring_process}
+
+{{< pagebreak >}}
+
+![Comparison of raw deviations (top row) and scores (bottom row) for each of three metrics to actual estimates following a leave-one-site-out analysis across all years.  The values on the x-axis represent the newly calculated raw deviations or scores after removing one site for each of all sampling years, repeated until each site was removed once.  The $r$ values represent the correlations of the recalculated values after removing one site and the full values with all sites.  The dotted lines are 1:1 relationships.](figs/leaveoneout.png){#fig-leaveoneout}
+
+{{< pagebreak >}}
+
+![Sensitivity of the calculated floor for the metric scores based on length of the calibration period.  Different calibration periods of two to six years from the beginning of the period of record were evaluated.  The black line is the mean floor for each year and metric.  Score floors are jittered on the x-axis by year.](figs/calsens.png){#fig-calsens}
+
+{{< pagebreak >}}
+
+![Results of mixed-effects models comparing group scores (top row) and absolute deviations (bottom row) over time.  The models in the top row evaluate scores as a function of time with a random group effect, whereas the models in the bottom row evaluate the absolute deviations of the group values from the between group means with random effects for species and group.  Solid lines show the overall group or group/species means and the dashed lines show individual effects for group or group/species.  The bottom right plot did not have significant species or group effects and only the fit of absolute deviation over time is shown.  None of the relationships are significant (ns: not significant).](figs/scrdevmods.png){#fig-scrdevmods}
+
 {{< pagebreak >}}
 
 ## Tables {.unnumbered}
 
+```{r}
+#| label: tbl-scrmodstab
+#| tbl-cap: "Model summaries of metric score trends over time (year) by metric, with group as a random intercept. Group SD is the between group standard deviation. R² is shown for the marginal (fixed effects only) and conditional (fixed and random) effects. AIC: Akaike Information Criterion."
+scrmodstab
+```
+
+{{< pagebreak >}}
+
+```{r}
+#| label: tbl-spmodstab
+#| tbl-cap: "Model summaries of absolute deviation trends over time (year) by metric, with species and group as crossed random intercepts. Units are specific to the metric (Abundance: category positions, Blade Length: cm, Short Shoot Density: percent difference).Group SD is the between group standard deviation and species SD is the between species standard deviation. R² is shown for the marginal (fixed effects only) and conditional (fixed and random) effects. Short Shoot Density is a singular fit (both random-intercept variances estimated as zero), so its conditional R² is undefined. AIC: Akaike Information Criterion."
+spmodstab
+```
+
+{{< pagebreak >}}
+
+```{r}
+#| label: tbl-slopetab
+#| tbl-cap: "Slopes of change over time (year) for raw absolute deviations of metrics, by species and training group (A-F). Colors diverge at zero within each metric (red increasing, green decreasing), with the domain scaled separately per metric since the units differ (Abundance: category positions, Blade Length: cm, Short Shoot Density: percent difference)."
+slopetab
+```
 
 {{< pagebreak >}}
 

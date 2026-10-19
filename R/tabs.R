@@ -19,8 +19,9 @@ fmt3 <- function(x) formatC(x, format = 'f', digits = 3)
 allN <- unique(sapply(scrmods, nobs))
 allGroups <- unique(sapply(scrmods, function(mod) unname(summary(mod)$ngrps)))
 stopifnot(length(allN) == 1, length(allGroups) == 1)
+totab <- c('Abundance', 'Blade Length', 'Short Shoot Density')
 
-sumdat <- lapply(names(scrmods), function(varnm) {
+sumdat <- lapply(totab, function(varnm) {
 
   mod <- scrmods[[varnm]]
   cfs <- summary(mod)$coefficients
@@ -59,9 +60,8 @@ scrmodstab <- flextable(sumdat) |>
   autofit() |>
   align(align = 'center', part = 'all') |>
   align(j = 'Metric', align = 'left', part = 'all') |>
-  set_caption('Random-intercept model summaries of score trend by metric.') |>
   add_footer_lines(values = paste0(
-    '* p < 0.05, ** p < 0.001; N = ', allN, ', Groups = ', allGroups, ' for all models.'
+    'N = ', allN, ', Groups = ', allGroups, ' for all models.'
   ))
 
 save(scrmodstab, file = here('tabs/scrmodstab.RData'), compress = 'xz')
@@ -120,14 +120,13 @@ sumdat2 <- lapply(names(spmods), function(varnm) {
   select(Metric, N, `Change yr⁻¹ (95% CI)`, `Group SD`, `Species SD`, `R² (marg/cond)`, AIC)
 
 spmodstab <- flextable(sumdat2) |>
+  fontsize(size = 9, part = 'all') |>
   autofit() |>
   align(align = 'center', part = 'all') |>
   align(j = 'Metric', align = 'left', part = 'all') |>
-  set_caption('Random-intercept model summaries of absolute deviation trend by metric, with species and group as crossed random intercepts.') |>
   add_footer_lines(values = paste0(
-    '* p < 0.05, ** p < 0.001; Groups = ', allGroups2, ', Species = ', allSpecies,
-    ' for all models. ',
-    'Short Shoot Density is a singular fit (both random-intercept variances estimated as zero), so its conditional R² is undefined.'
+    'Groups = ', allGroups2, ', Species = ', allSpecies,
+    ' for all models. '
   ))
 
 save(spmodstab, file = here('tabs/spmodstab.RData'), compress = 'xz')
@@ -170,16 +169,29 @@ slopedat <- grpdat |>
 
 slopegrpcols <- sort(unique(slopedat$grp))
 
+# anonymize group identity as A, B, C... in this table only; the mapping is
+# printed below for reference but not saved anywhere in slopetab itself
+grplabs <- setNames(LETTERS[seq_along(slopegrpcols)], slopegrpcols)
+message('slopetab group key: ', paste(names(grplabs), grplabs, sep = ' = ', collapse = ', '))
+
 slopewide <- slopedat |>
-  mutate(var = factor(var, levels = spvars)) |>
+  mutate(
+    var = factor(var, levels = spvars),
+    grp = grplabs[grp]
+  ) |>
   tidyr::pivot_wider(names_from = grp, values_from = slope) |>
   arrange(var, Species) |>
-  select(Metric = var, Species, dplyr::all_of(slopegrpcols))
+  select(Metric = var, Species, dplyr::all_of(sort(unname(grplabs))))
+
+slopegrpcols <- sort(unname(grplabs))
 
 slopetab <- flextable(slopewide) |>
-  colformat_double(j = slopegrpcols, digits = 3) |>
+  fontsize(size = 10, part = 'all') |>
+  colformat_double(j = slopegrpcols, digits = 2) |>
   merge_v(j = 'Metric') |>
   valign(j = 'Metric', valign = 'top') |>
+  fix_border_issues() |>
+  add_header_row(values = c('', 'Groups'), colwidths = c(2, length(slopegrpcols)), top = TRUE) |>
   fix_border_issues()
 
 for (vr in spvars) {
@@ -194,15 +206,8 @@ for (vr in spvars) {
 slopetab <- slopetab |>
   align(align = 'center', part = 'all') |>
   align(j = c('Metric', 'Species'), align = 'left', part = 'all') |>
-  bg(part = 'header', bg = '#2166ac') |>
-  color(part = 'header', color = 'white') |>
   bold(part = 'header') |>
-  set_caption('Slope of |deviation| vs. year by metric, species, and group.') |>
-  add_footer_lines(values = paste(
-    'Colors diverge at 0 within each metric (red = increasing deviation,',
-    'green = decreasing), domain scaled separately per metric since units differ',
-    '(category positions, cm, percent difference). FDEP and HC-ES dropped (too few years).'
-  )) |>
   autofit()
 
 save(slopetab, file = here('tabs/slopetab.RData'), compress = 'xz')
+
