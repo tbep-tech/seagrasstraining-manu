@@ -4,7 +4,101 @@ library(patchwork)
 library(lme4)
 library(lmerTest)
 
-source(here('R/funcs.R'))
+funcsurl <- 'https://raw.githubusercontent.com/tbep-tech/seagrasstransect-training-reports/main/R/funcs.R'
+funcsfl <- paste(tempdir(), 'funcs.R', sep = '/')
+download.file(funcsurl, destfile = funcsfl, quiet = TRUE)
+source(funcsfl)
+
+load(file = here('data/trndat.rda'))
+
+# floor sensitivity to calibration years ---------------------------------
+
+scr_metric <- c(Abundance = 'abs', `Blade Length` = 'abs', `Short Shoot Density` = 'pct')
+yrs <- sort(unique(trndat$yr))
+
+# one floor per metric x year, for each candidate calibration window length
+calsens <- purrr::map(c(2, 3, 4, 5, 6), function(n_cal_yrs) {
+
+  cal <- calibrate_scr_fun(trndat, metric = scr_metric, n_cal_yrs = n_cal_yrs)
+
+  cal_lkp <- tibble::tibble(
+    metric  = c('Abundance', 'Blade Length', 'Short Shoot Density'),
+    mean_sd = c(cal$mean_sd$Abundance, cal$mean_sd$`Blade Length`,
+                cal$mean_sd$`Short Shoot Density`)
+  )
+
+  purrr::map(yrs, function(yr) {
+    tv <- truvar_fun(trndat, yr)
+    allgrpscr_fun(trndat, yr, tv, raw_diff = TRUE, metric = scr_metric) |>
+      dplyr::summarize(dplyr::across(Abundance:`Short Shoot Density`,
+                                      ~ sd(.x, na.rm = TRUE))) |>
+      dplyr::mutate(yr = yr)
+  }) |>
+    dplyr::bind_rows() |>
+    tidyr::pivot_longer(-yr, names_to = 'metric', values_to = 'sd_avediff') |>
+    dplyr::left_join(cal_lkp, by = 'metric') |>
+    dplyr::mutate(
+      ratio     = sd_avediff / mean_sd,
+      floor_adj = as.integer(pmax(50, 50 + (1 - ratio) * 50)),
+      metric    = factor(metric, levels = c('Abundance', 'Blade Length', 'Short Shoot Density')),
+      n_cal_yrs = n_cal_yrs
+    )
+  }) |>
+  dplyr::bind_rows()
+
+# does calibration window length change the floors? -------------------------
+# repeated-measures design: each yr x metric combo has a floor_adj under
+# every candidate n_cal_yrs, so window length is a within-unit factor,
+# with (1 | yr) and (1 | metric) absorbing year- and metric-level baseline
+# differences. floor_adj is on the same 50-100 scale for all three metrics
+# (see calibrate_scr_fun()), so no need for separate per-metric models here.
+calsensmod <- lmer(floor_adj ~ factor(n_cal_yrs) + (1 | yr) + (1 | metric), data = calsens)
+
+# omnibus F-test for the n_cal_yrs factor as a whole (not just pairwise
+# contrasts against the reference level) -- non-significant means floors
+# are not sensitive to calibration window length
+anova(calsensmod)
+
+calsensrng <- calsens |>
+  summarise(
+    floor_mean = mean(floor_adj),
+    .by = c(yr, metric)
+  )
+
+senscols <- c(
+  setNames(viridisLite::viridis(5), sort(unique(calsens$n_cal_yrs))),
+  Mean = 'grey20'
+)
+
+p <- ggplot(calsens, aes(x = yr, y = floor_adj)) +
+  geom_line(
+    data = calsensrng,
+    aes(x = yr, y = floor_mean, color = 'Mean'),
+    inherit.aes = FALSE, linewidth = 0.9
+  ) +
+  geom_point(
+    aes(color = factor(n_cal_yrs)), size = 2,
+    position = position_jitter(width = 0.15, height = 0, seed = 123)
+  ) +
+  scale_color_manual(
+    values = senscols, name = 'Calibration window (yrs)',
+    breaks = c(sort(unique(calsens$n_cal_yrs)), 'Mean')
+  ) +
+  guides(color = guide_legend(nrow = 1)) +
+  scale_y_continuous(limits = c(50, 100)) +
+  facet_wrap(~ metric, ncol = 1) +
+  labs(
+    x = NULL, y = 'Score floor',
+  ) +
+  theme_minimal(base_size = 11) +
+  theme(
+    legend.position = 'bottom', 
+    panel.grid.minor = element_blank()
+  )
+
+png(here('figs/calsens.png'), width = 6, height = 6, units = 'in', res = 300)
+print(p)
+dev.off()
 
 # mixeff model for scores over tim ---------------------------------------
 

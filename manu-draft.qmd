@@ -78,7 +78,7 @@ note that we can't run trend analyses on converted scores - these are always res
 
 ## Results
 
-robustness of method
+robustness of method - year period for calibration of score floor
 
 group scores 
 
