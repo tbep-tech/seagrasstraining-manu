@@ -80,9 +80,9 @@ history of transect monitoring
 
 ### Scoring
 
-The scoring method was developed to compare consistency among groups that participated in the training each year, i.e., how closely a group's results compared to the overall group mean in a given year.  No single external ground truth exists, so precision was used as the basis of scoring.  Additionally, the species list for a given year was based on corraboration, not unanimity across groups, such that a species was considered present if at least two groups noted its presence at a location. This allowed for the identification of both false positives and false negatives, both of which can penalize a group's score.  
+The scoring method was developed to compare consistency among groups that participated in the training each year, i.e., how closely a group's results compared to the overall group mean in a given year.  No single external ground truth exists, so precision was used as the basis of scoring.  Additionally, the species list for a given year was based on corraboration, not unanimity across groups, such that a species was considered present if at least two groups found it at a location. This allowed for the identification of both false positives and false negatives, both of which can penalize a group's score as described below.  
 
-All scores were first calculated at the smallest scale of species/metric/location, then scaled up to a metric/location score, then finally summed to a metric score. Three metric scores are assigned to each group for abundance, blade length, and density. The total score is a simple average of the metric scores. The entire process to score an individual group in a given year includes ten steps, as shown in @fig-scoring_process and described in detail below.   
+All scores were first calculated at the smallest scale of species/metric/location, then scaled up to a metric/location score, then finally summed to a metric score. Three scores are assigned to each group for the abundance, blade length, and short shoot density metrics. The total score is a simple average of the metric scores. The entire process to score an individual group in a given year includes ten steps, as shown in @fig-scoring_process and described in detail below.   
 
 #### Step 1: Consensus Species List 
 
@@ -90,13 +90,26 @@ The first step requires identifying the consensus species that are present at ea
 
 #### Step 2: True Values
 
-In this step, the "true" values are simply the cross-group means of the metrics for each species at each location.  Although the averages are nominally true, they were not considered an absolute external ground truth since we acknowledge that no single group is perfect in their assessments.  The true values are calculated only for the consensus species at each location.  True values for abundance were estimated for all SAV and macroalgae species, whereas true values for blade length and short shoot density were calculated only for SAV. The abundance averages were based on the Braun-Blanquet values (0, 0.1, 0.5, 1, 2, 3, 4, or 5), which were snapped to the nearest value after averaging.  Blade length and short shoot density were averaged in their native units (cm and shoots  m$^{-2}$).
+The true values for the species metrics at each transect are then identified as the basis of comparison for each group in a given training year. In this step, the "true" values are simply the cross-group means of the metrics for each species at each location.  Although the averages are nominally true, they were not considered an absolute external ground truth since we acknowledge that no single group is perfect in their assessments.  The true values are calculated only for the consensus species at each location.  True values for abundance were estimated for all SAV and macroalgae species, whereas true values for blade length and short shoot density were calculated only for SAV since these values are not recorded for macroalgae. The abundance averages were based on the Braun-Blanquet values (0, 0.1, 0.5, 1, 2, 3, 4, or 5), which were snapped to the nearest value after averaging.  Blade length and short shoot density were averaged in their native units (cm and shoots  m$^{-2}$).
 
 #### Step 3-6: Group Differences and Metric Scores
 
-Steps 3-6 are repeated across species and metrics for a given group to combine results across each location.  Specifically, results are first evaluated at each location to identify the species and metric differences from the true values, then the location values are combined using a weighted average to obtain species and metric scores. Weighting is used to discount or penalize scores based on variation in the true values.  For example, scores are penalized for a group if all groups were more in agreement for a species and metric assessment, and vice versa.  Similarly, false positives and missed species (false negatives) are also penalized in the abundance scores when combining scores across locations.
+Steps 3-6 are repeated across species and metrics for a given group to combine results across each location.  Specifically, results are first evaluated at each location to identify the species and metric differences from the true values, then the location values are combined using a weighted average to obtain species and metric scores. Weighting is used to discount or penalize scores based on variation in the true values.  For example, differences from the true values are penalized more heavily for a group if all groups were more in agreement for a species and metric assessment, and vice versa.  Similarly, false positives and missed species (false negatives) are also penalized in the abundance scores when combining scores across locations.  The mechanics of these differences, their penalties, and species weighting is described in detail below. 
 
-In this
+For these steps, differences in a group's reported values from the true values are calculated two ways.  For abundance and blade length, the difference $d$ for species $s$ at transect $t$ is a simple subtraction:
+
+$$
+d_{s,t} = \text{reported} - \text{true}
+$$
+For short shoot density, the difference is a symmetric percent difference:
+
+$$
+d_{s,t} = \frac{\text{reported} - \text{true}}{(\text{reported}+\text{true})/2}
+$$
+
+The symmetric percent difference was used for short shoot density because the magnitude of the difference varies with the magnitude of the raw measurements, which also varies by species (e.g., *Halodule* short shoot density is typically higher than *Thalassia*).  The symmetric percent difference removes this correlation by providing a common scale for assessing the differences. 
+
+For abundance, the differences are in ordinal category positions for the Braun-Blanquet estimates (e.g., integer values from zero to eight for the values 0, 0.1, 0.5, 1, 2, 3, 4, and 5).  Using the ordinal category positions for the differences simply considers rank value differences since the actual abundance values differ between the categories, i.e., it was not desired to have different scales of comparison for low or high abundance estimates.  For a given group, the $d_{s,t}$ values for abundance are esimates for each species and transect using the consensus species list at that location.  If a group missed a species, it is assigned a zero, where as a false positive is given a value of 1 since
 
 Sensitivity of the scoring method was evaluated two ways, the first assessing general sensitivity to the data used for the scoring and the second based on explicit decision for the year period used for defining the floor.  
 
