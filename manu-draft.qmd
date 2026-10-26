@@ -92,7 +92,7 @@ The first step requires identifying the consensus species that are present at ea
 
 The true values for the species metrics at each transect are then identified as the basis of comparison for each group in a given training year. In this step, the "true" values are simply the cross-group means of the metrics for each species at each location.  Although the averages are nominally true, they were not considered an absolute external ground truth since we acknowledge that no single group is perfect in their assessments.  The true values are calculated only for the consensus species at each location.  True values for abundance were estimated for all SAV and macroalgae species, whereas true values for blade length and short shoot density were calculated only for SAV since these values are not recorded for macroalgae. The abundance averages were based on the Braun-Blanquet values (0, 0.1, 0.5, 1, 2, 3, 4, or 5), which were snapped to the nearest value after averaging.  Blade length and short shoot density were averaged in their native units (cm and shoots  m$^{-2}$).
 
-#### Step 3-6: Group Differences and Metric Scores
+#### Steps 3-6: Group Differences and Species/Metric Scores
 
 Steps 3-6 are repeated across species and metrics for a given group to combine results across each location.  Specifically, results are first evaluated at each location to identify the species and metric differences from the true values, then the location values are combined using a weighted average to obtain species and metric scores. Weighting is used to discount or penalize scores based on variation in the true values.  For example, differences from the true values are penalized more heavily for a group if all groups were more in agreement for a species and metric assessment, and vice versa.  Similarly, false positives and missed species (false negatives) are also penalized in the abundance scores when combining scores across locations.  The mechanics of these differences, their penalties, and species weighting is described in detail below. 
 
@@ -100,16 +100,50 @@ For these steps, differences in a group's reported values from the true values a
 
 $$
 d_{s,t} = \text{reported} - \text{true}
-$$
+$$ {#eq-dst1}
 For short shoot density, the difference is a symmetric percent difference:
 
 $$
 d_{s,t} = \frac{\text{reported} - \text{true}}{(\text{reported}+\text{true})/2}
+$$ {#eq-dst2}
+
+The symmetric percent difference was used for short shoot density because the magnitude of the difference varies with the magnitude of the raw measurements, which also varies by species (e.g., *Halodule* short shoot density is typically higher than *Thalassia*).  The symmetric percent difference removes this correlation by providing a common scale for assessing the differences.  Initial analyses also verified that blade length was not susceptible to this bias and @eq-dst1 was used for the differences.  
+
+For abundance, the differences are in ordinal category positions for the Braun-Blanquet estimates (e.g., integer values from zero to eight for the values 0, 0.1, 0.5, 1, 2, 3, 4, and 5).  Using the ordinal category positions for the differences simply considers rank value differences since the actual abundance values differ between the categories, i.e., it was not desired to have different scales of comparison for low or high abundance estimates.  For a given group, the $d_{s,t}$ values for abundance are estimates for each species and transect using the consensus species list at that location.  If a group missed a species, it is assigned a zero, whereas a false positive is given a value of 1.  As such, a missed species is penalized proportionally based on the true ordinal position that scales with group consensus.  However, a false positive is only penalized by one ordinal category position since what category a group reports does not provide any information about whether the species was actually present.  False positives or missed species only influenced the abundance metric and not blade length or short shoot density calculations since these metrics cannot be meaningfully penalized in the same manner as abundance.
+
+After the species- and transect-level differences are determined, the differences for each metric are then summarized for each species across the transects.  This summary used a weighted average where each species is assigned a weight based on the standard deviation of group estimates across the transects for each species.  The intent of using the weights was to discount or penalize differences for each group by considering how similar or different the groups were in their assessments.  Groups should not be penalized as heavily for large differences if all groups had variable estimates.  Similarly, groups should be penalized more for large differences if all groups had more similar estimates.  The species weights at each transect were determined as:
+
 $$
+w_{s,t} = \frac{1}{1 + \sigma_{s,t}}
+$$ {#eq-weight}
+$$
+\sigma_{s,t} = \text{SD}\left(x_{s,t}\right)
+$$ {#eq-weightsd}
+where the weight $w$ for species $s$ at transect $t$ is simply the standard deviation $\text{SD}$ of estimates across all groups for that sepcies at that transect ($x_{s,t}$).  The weighted average for the species and metric that combines the differences across transects is then:
 
-The symmetric percent difference was used for short shoot density because the magnitude of the difference varies with the magnitude of the raw measurements, which also varies by species (e.g., *Halodule* short shoot density is typically higher than *Thalassia*).  The symmetric percent difference removes this correlation by providing a common scale for assessing the differences. 
+$$
+\bar{d}_s = \frac{\sum_{t=1}^{T} w_{s,t}\,d_{s,t}}{\sum_{t=1}^{T} w_{s,t}}
+$$ {#eq-weightave}
+where a group's mean difference for a species $s$ across transects $t=1$ to $T$ is the summation of the weights $w_{s,t}$ multiplied by the differences $d_{s,t}$, then divided by the summation of the weights.  This equation applies to each metric and species.  
 
-For abundance, the differences are in ordinal category positions for the Braun-Blanquet estimates (e.g., integer values from zero to eight for the values 0, 0.1, 0.5, 1, 2, 3, 4, and 5).  Using the ordinal category positions for the differences simply considers rank value differences since the actual abundance values differ between the categories, i.e., it was not desired to have different scales of comparison for low or high abundance estimates.  For a given group, the $d_{s,t}$ values for abundance are esimates for each species and transect using the consensus species list at that location.  If a group missed a species, it is assigned a zero, where as a false positive is given a value of 1 since
+#### Step 7: Metric Scores
+
+The next step is averaging the absolute differences across species to get the raw metric score:
+
+$$
+\text{metric score}_{\text{raw}} = \frac{1}{S}\sum_s |\bar{d}_s|
+$$ {#eq-metscr}
+where $S$ is the number of species each with $\bar{d}_s$. No further weighting is used since species weights are already included in $\bar{d}_s$. By the end of the process, there are three raw metric scores estimated for each group for abundance, blade length, and short shoot density. 
+
+#### Steps 8-10: Final scores
+
+The last steps convert the raw metric scores to a conventional numeric grading scale and letter grades.  At the simplest level, the distribution of the raw metric scores for a given metric across the groups is rescaled from 50 to 100 with the group having the largest difference receiving 50 and the group having the smallest difference receiving 100. However, this simple rescaling does not account for variation in the scores among the groups across years, since rescaling to the same 50-100 does not make sense when groups were similar one year but more divergent in another.  To account for this, the minimum floor of the rescaling can be raised in years when groups were more similar, so that all groups receive an overall higher score.  The floor for a metric in a given year is calculated as:
+
+$$
+\text{floor}_{\text{yr, met}} = \max\!\left(50,\ 50 + \left(1 - \frac{\text{SD}_{\text{yr, met}}}{\overline{\text{SD}_{\text{met}}}}\right) \times 50\right)
+$$ {#eq-flr}
+
+where
 
 Sensitivity of the scoring method was evaluated two ways, the first assessing general sensitivity to the data used for the scoring and the second based on explicit decision for the year period used for defining the floor.  
 
