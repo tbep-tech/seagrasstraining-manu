@@ -150,7 +150,7 @@ where the floor is the maximum between 50 or a recalculated floor based on varia
 
 The three raw metric are assigned to a numeric score based on the ranges defined between the floor to 100 and then averaged to get a single total score for a group.  For communication to training participants, the numeric scores were converted to letter grades following a typical grading scheme, i.e., A = 100 -- 95, A- = <95 -- 90, B+ = <90 -- 85, $\dots$, D < 55.  
 
-Each group that participated in an annual training received an online report card to both motivate and provide additional resources if improvements were warranted.  These reports were parameterized as a Quarto dashboard that used a single template applied to each group and year.  The first tab of the report showed the group's scores for a year for each of the three metrics, the raw differences for the species used in each metric, the overall score, and a table showing individual transect outcomes relative to the group means. The second tab provided additional resources to consult if a group was deficient in any given area (i.e., species identification, large deviation for any of the metrics).  Any letter grades less than A- for the scores or any false positives or missed species prompted a conditional display of resources, otherwise, a satisfactory note was provided. The resources included online documentation and video training resources curated by the TBEP. 
+Each group that participated in an annual training received an online report card to both motivate and provide additional resources if improvements were warranted [@fig-reportcard].  These reports were parameterized as a Quarto dashboard that used a single template applied to each group and year.  The first tab of the report showed the group's scores for a year for each of the three metrics, the raw differences for the species used in each metric, the overall score, and a table showing individual transect outcomes relative to the group means. The second tab provided additional resources to consult if a group was deficient in any given area (i.e., species identification, large deviation for any of the metrics).  Any letter grades less than A- for the scores or any false positives or missed species prompted a conditional display of resources, otherwise, a satisfactory note was provided. The resources included online documentation and video training resources curated by the TBEP. 
 
 ### Sensitivity analysis
 
@@ -187,6 +187,10 @@ what didn't work:
 ## Figures {.unnumbered}
 
 ![Flowchart showing the scoring process from steps 1 to 10 for a single group in a given year. Step 3 involves all groups in the focal year and step 8 is a historical baseline from all groups for a set period of past trainings.](figs/scoring_process.png){#fig-scoring_process}
+
+{{< pagebreak >}}
+
+![Landing page for a group's annual report card showing the overall score (top left), metric scores (bottom row), and barplots of deviations for each species used to calculate the metric scores.  Also available is a summary of results for each species at each transect and an additional tab with resources on how to improve the scores.](figs/reportcard.png){#fig-reportcard}
 
 {{< pagebreak >}}
 
