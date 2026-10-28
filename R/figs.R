@@ -122,14 +122,19 @@ dev.off()
 # two-entry legend: individual group trends vs. the overall group mean (see
 # fit_and_plot()/dev_fit_and_plot() in R/funcs.R for plot mechanics)
 
-# FDEP and HC-ES dropped: they have the fewest years of data of the eight groups
+# this is the one figure showing trend models, so (like scrmods/spmods/
+# slopetab) it's restricted to trendgrps (> 3 years of participation, see
+# R/dat_proc.R) -- every other figure uses every group that participated
+load(file = here('data/trendgrps.RData'))
+
 alldat <- allyrscrs |>
-  filter(!grp %in% c('FDEP', 'HC-ES')) |>
+  filter(grp %in% trendgrps) |>
   mutate(yrctr = yr - min(yr))
 
 spvars <- names(spmods)
 
 spdat <- rawdiffscrs |>
+  filter(grp %in% trendgrps) |>
   mutate(
     absdev  = abs(devval),
     yrctr   = yr - min(yr),

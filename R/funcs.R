@@ -52,12 +52,11 @@ run_loo <- function(trndat, yrs, scorefun_safe, varnames) {
     purrr::compact() |>
     dplyr::bind_rows() |>
     dplyr::mutate(
-      grp    = gsub('^.*:\\s(.*?)\\s\\(.*$', '\\1', grpact),
+      grp    = extract_grp(grpact),
       metric = factor(metric, levels = varnames)
     ) |>
     dplyr::filter(!is.na(full), !is.na(loo)) |>
-    dplyr::filter(!grp %in% 'NA') |>
-    dplyr::filter(grp %in% tbeptools::trnlns$MonAgency)
+    dplyr::filter(!grp %in% 'NA')
 
 }
 
@@ -105,12 +104,11 @@ run_loo_grp <- function(trndat, yrs, scorefun_safe, varnames) {
     purrr::compact() |>
     dplyr::bind_rows() |>
     dplyr::mutate(
-      grp    = gsub('^.*:\\s(.*?)\\s\\(.*$', '\\1', grpact),
+      grp    = extract_grp(grpact),
       metric = factor(metric, levels = varnames)
     ) |>
     dplyr::filter(!is.na(full), !is.na(loo)) |>
-    dplyr::filter(!grp %in% 'NA') |>
-    dplyr::filter(grp %in% tbeptools::trnlns$MonAgency)
+    dplyr::filter(!grp %in% 'NA')
 
 }
 
@@ -309,4 +307,49 @@ dev_fit_and_plot <- function(varnm, spdat, spmods) {
     ) +
     theme_minimal(base_size = 13) +
     theme(panel.grid.minor = element_blank(), legend.position = 'bottom')
+}
+
+# table-building helpers ------------------------------------------------------
+
+# extracts the short group code from a grpact string (e.g. "2021: TBW (RR
+# MG TK PL)" -> "TBW"), then normalizes known synonyms to their canonical
+# code -- "TBW" is this training's own abbreviation for Tampa Bay Watch,
+# confirmed to be the same group as "TBWI" (the code used elsewhere in
+# tbeptools for its separate, ongoing transect monitoring program)
+extract_grp <- function(grpact) {
+  grp <- gsub('^.*:\\s(.*?)\\s\\(.*$', '\\1', grpact)
+  dplyr::recode(grp, TBW = 'TBWI')
+}
+
+# applies extract_grp() and keeps every group with a recorded affiliation
+# -- the literal grp == 'NA' placeholder (rows with no affiliation given)
+# is the only thing excluded. this does NOT filter against
+# tbeptools::trnlns$MonAgency: that list is for the separate, ongoing
+# transect monitoring program, not this training event, and has no entry
+# at all for several real training groups (e.g. one-off participants like
+# "USF" or "SWK")
+validgrp <- function(dat) {
+  dat |>
+    dplyr::mutate(grp = extract_grp(grpact)) |>
+    dplyr::filter(!grp %in% 'NA')
+}
+
+# one cell as "mean (min, max)" (or "mean (min)" if show_max = FALSE)
+# across a vector, e.g. a metric's values across groups in a given year
+fmtavgrng <- function(x, digits, show_max = TRUE) {
+  fmt <- paste0('%.', digits, 'f')
+  if (show_max) {
+    sprintf(paste0(fmt, ' (', fmt, ', ', fmt, ')'), mean(x, na.rm = TRUE), min(x, na.rm = TRUE), max(x, na.rm = TRUE))
+  } else {
+    sprintf(paste0(fmt, ' (', fmt, ')'), mean(x, na.rm = TRUE), min(x, na.rm = TRUE))
+  }
+}
+
+# a blank full-width row with `label` in `label_col` and NA elsewhere, used
+# to insert a section-header row directly into a wide summary table
+# (merged across columns afterward with flextable's merge_at()) rather
+# than relying on flextable's as_grouped_data()
+blank_row <- function(label, cols, label_col = 'Metric') {
+  row <- stats::setNames(as.list(rep(NA_character_, length(cols))), cols)
+  tibble::as_tibble(c(stats::setNames(list(label), label_col), row))
 }

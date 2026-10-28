@@ -134,9 +134,10 @@ save(spmodstab, file = here('tabs/spmodstab.RData'), compress = 'xz')
 # matrix table: slope of abs(devval) ~ yr per group x species, one combined --
 # flextable with a row block per metric (rows = species within each block,
 # columns = group), rather than three separate tables. p-values are ignored
-# (each regression has only 4-9 points, one per year that group/species pair
-# has data), same six groups as the per-group models in R/scratch.R
-# (FDEP/HC-ES dropped for too few years). Cells are colored by slope,
+# (each regression has only a few points, one per year that group/species
+# pair has data). this is a trend analysis (slope over time), so it's
+# restricted to trendgrps (> 3 years of participation, see R/dat_proc.R)
+# like scrmods/spmods above. Cells are colored by slope,
 # diverging red (increasing deviation, getting worse) to green (decreasing,
 # getting better), white at a slope of exactly 0, matching the direction of
 # spmodstab above (negative = improvement). A single shared color domain
@@ -147,10 +148,12 @@ save(spmodstab, file = here('tabs/spmodstab.RData'), compress = 'xz')
 # one table instead of needing three separate table objects
 
 load(file = here('data/rawdiffscrs.RData'))
+load(file = here('data/trendgrps.RData'))
 
 spvars <- names(spmods)
 
 spdat <- rawdiffscrs |>
+  filter(grp %in% trendgrps) |>
   mutate(
     absdev  = abs(devval),
     yrctr   = yr - min(yr),
@@ -158,10 +161,7 @@ spdat <- rawdiffscrs |>
   ) |>
   filter(!is.na(absdev))
 
-# same six groups as the per-group models in R/scratch.R
-grpdat <- spdat |> filter(!grp %in% c('FDEP', 'HC-ES'))
-
-slopedat <- grpdat |>
+slopedat <- spdat |>
   summarise(
     slope = coef(lm(absdev ~ yr))[['yr']],
     .by = c(var, grp, Species)
@@ -210,4 +210,120 @@ slopetab <- slopetab |>
   autofit()
 
 save(slopetab, file = here('tabs/slopetab.RData'), compress = 'xz')
+
+# training summary table: groups, metric scores, raw deviations, and the --
+# consensus species list by year. Metric score and raw deviation rows reuse
+# the same metric names as their Metric label, so a 'type' column (not the
+# label text) is what keeps those two blocks apart during assembly, same
+# reasoning as the per-year summary rows below
+
+funcsurl <- 'https://raw.githubusercontent.com/tbep-tech/seagrasstransect-training-reports/main/R/funcs.R'
+funcsfl <- paste(tempdir(), 'funcs.R', sep = '/')
+download.file(funcsurl, destfile = funcsfl, quiet = TRUE)
+source(funcsfl)
+
+load(file = here('data/trndat.rda'))
+
+yrs <- sort(unique(trndat$yr))
+metvars <- c('Abundance', 'Blade Length', 'Short Shoot Density')
+scr_metric <- c(Abundance = 'abs', `Blade Length` = 'abs', `Short Shoot Density` = 'pct')
+
+# fixed historical baseline, built once from the full dataset (same as
+# production use)
+cal <- calibrate_scr_fun(trndat, metric = scr_metric)
+
+# per-year summary, kept long with a 'type' column distinguishing the four
+# row categories: number of groups, metric scores and raw (pre-
+# calibration) deviations (both averaged across groups, with (min, max) in
+# one cell -- deviations are summarized in absolute terms since the raw
+# differences are signed, scores are not since they're already a bounded
+# 0-100 scale), and how many Sites each consensus species (truespp_fun(),
+# >= 2 groups reporting) was found at
+yrsumm <- purrr::map(yrs, function(yr) {
+
+  yrdat <- trndat |> dplyr::filter(yr == !!yr)
+  tv <- truvar_fun(trndat, yr)
+
+  n_groups <- yrdat |>
+    validgrp() |>
+    dplyr::pull(grp) |>
+    unique() |>
+    length()
+
+  scrsumm <- allgrpscr_fun(trndat, yr, tv, cal = cal, raw = TRUE, metric = scr_metric) |>
+    validgrp() |>
+    tidyr::pivot_longer(dplyr::all_of(metvars), names_to = 'Species', values_to = 'val') |>
+    dplyr::summarise(val = fmtavgrng(val, 0, show_max = FALSE), .by = 'Species') |>
+    dplyr::mutate(type = 'score')
+
+  devsumm <- allgrpscr_fun(trndat, yr, tv, raw_diff = TRUE, metric = scr_metric) |>
+    validgrp() |>
+    tidyr::pivot_longer(dplyr::all_of(metvars), names_to = 'Species', values_to = 'val') |>
+    dplyr::summarise(val = fmtavgrng(abs(val), 1), .by = 'Species') |>
+    dplyr::mutate(type = 'deviation')
+
+  truespp <- truespp_fun(trndat, yr)
+  sppcnt <- truespp |>
+    dplyr::count(Species, name = 'val') |>
+    dplyr::mutate(val = as.character(val), type = 'species')
+
+  dplyr::bind_rows(
+    tibble::tibble(Species = 'Number of groups', val = as.character(n_groups), type = 'groups'),
+    scrsumm, devsumm, sppcnt
+  ) |>
+    dplyr::mutate(yr = yr)
+
+}) |>
+  dplyr::bind_rows()
+
+# macroalgae species codes share these prefixes (same convention used in
+# the scoring repo's docs, see 'non' in docs/scoring.qmd), anything else is
+# SAV -- SAV listed first, each block alphabetical within itself
+non <- '^AA|^DA|^DB|^DG|^DR|^CYAN'
+
+allspp <- yrsumm |>
+  dplyr::filter(type == 'species') |>
+  dplyr::pull(Species) |>
+  unique()
+
+savspp <- sort(allspp[!grepl(non, allspp)])
+algspp <- sort(allspp[grepl(non, allspp)])
+
+yrcols <- as.character(yrs)
+
+yrwide_all <- yrsumm |>
+  tidyr::pivot_wider(id_cols = c(Species, type), names_from = yr, values_from = val, values_fill = '-') |>
+  dplyr::rename(Metric = Species)
+
+yrwide <- dplyr::bind_rows(
+  yrwide_all |> dplyr::filter(type == 'groups'),
+  blank_row('Metric scores', yrcols),
+  yrwide_all |> dplyr::filter(type == 'score') |> dplyr::arrange(factor(Metric, levels = metvars)),
+  blank_row('Raw deviations', yrcols),
+  yrwide_all |> dplyr::filter(type == 'deviation') |> dplyr::arrange(factor(Metric, levels = metvars)),
+  blank_row('SAV', yrcols),
+  yrwide_all |> dplyr::filter(type == 'species', Metric %in% savspp) |> dplyr::arrange(Metric),
+  blank_row('Macroalgae', yrcols),
+  yrwide_all |> dplyr::filter(type == 'species', Metric %in% algspp) |> dplyr::arrange(Metric)
+) |>
+  dplyr::select(-type)
+
+hdr_i <- which(yrwide$Metric %in% c('Metric scores', 'Raw deviations', 'SAV', 'Macroalgae'))
+spp_i <- which(yrwide$Metric %in% c(savspp, algspp))
+
+trainsumtab <- flextable(yrwide) |>
+  italic(i = spp_i) |>
+  bold(i = c(1, hdr_i)) |>
+  bold(part = 'header') |>
+  align(align = 'center', part = 'all') |>
+  align(j = 'Metric', align = 'left', part = 'all') |>
+  hline(i = c(1, hdr_i[2] - 1, hdr_i[3] - 1, hdr_i[4] - 1)) |>
+  set_header_labels(Metric = '') |>
+  autofit()
+
+for (i in hdr_i) {
+  trainsumtab <- merge_at(trainsumtab, i = i, j = seq_len(length(yrcols) + 1), part = 'body')
+}
+
+save(trainsumtab, file = here('tabs/trainsumtab.RData'), compress = 'xz')
 

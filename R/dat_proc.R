@@ -14,18 +14,65 @@ utils::download.file(dataurl, destfile = fl, quiet = TRUE)
 load(file = fl)
 save(trndat, file = here('data/trndat.rda'), compress = 'xz')
 
-# all score data from report card repo -----------------------------------
+# the report repo's own scoring functions (truvar_fun(), allgrpscr_fun(),
+# calibrate_scr_fun(), allyrscr_fun(), etc.) -- sourced early since
+# everything below needs them
+funcsurl <- 'https://raw.githubusercontent.com/tbep-tech/seagrasstransect-training-reports/main/R/funcs.R'
+funcsfl <- paste(tempdir(), 'funcs.R', sep = '/')
+download.file(funcsurl, destfile = funcsfl, quiet = TRUE)
+source(funcsfl)
 
-allyrscrs <- tbepreport::util_rdataload('https://github.com/tbep-tech/seagrasstransect-training-reports/raw/refs/heads/main/app/data/allyrscrs.RData')
+yrs <- sort(unique(trndat$yr))
+scr_metric <- c(Abundance = 'abs', `Blade Length` = 'abs', `Short Shoot Density` = 'pct')
+
+# fixed historical baseline, built once from the full dataset (same as
+# production use)
+cal <- calibrate_scr_fun(trndat, metric = scr_metric)
+
+# all score data, computed locally rather than downloaded -----------------
+# the report repo's own allyrscr_fun() is reused here directly, but with
+# usemon = FALSE. Its default (usemon = TRUE, used when the report repo
+# builds its own app/data/allyrscrs.RData) filters groups against
+# tbeptools::trnlns$MonAgency, a code list for the *separate*, ongoing
+# transect monitoring program (not this training event) -- it's missing
+# "TBW" (this training's actual code for Tampa Bay Watch, every year
+# 2020-2026) and has no entry for one-off participants like "USF" (2020)
+# or "SWK" (2026), so usemon = TRUE silently drops those groups' data from
+# every trend model, slope table, and figure built on top of it. The only
+# other post-hoc filter allyrscr_fun() applies (na.rm = TRUE, its default)
+# drops the literal grp == 'NA' placeholder for rows with no recorded
+# affiliation, which is kept here since that's not a real participating
+# group
+
+allyrscrs <- allyrscr_fun(trndat, usemon = FALSE, cal = cal, metric = scr_metric) |>
+  mutate(grp = dplyr::recode(grp, TBW = 'TBWI'))
 save(allyrscrs, file = here('data/allyrscrs.Rdata'), compress = 'xz')
+
+# groups qualifying for trend analyses -------------------------------------
+# every figure/table above and below uses every group that participated,
+# but an analysis that models CHANGE OVER TIME is only meaningful for a
+# group attending enough trainings to show one -- restricted to groups
+# with more than three years of participation, aligning with the
+# hypothesis that groups attending more than a few years of training
+# might show measurable improvement. this restriction applies only to the
+# trend models and whatever is built from them: scrmods, spmods, slopetab
+# (R/tabs.R), and the scrdevmods figure (R/figs.R) -- not to allyrscrs/
+# rawdiffscrs themselves, which stay complete, or to anything else
+# (leave-one-out, floor calibration, the training summary table)
+trendgrps <- allyrscrs |>
+  distinct(grp, yr) |>
+  count(grp, name = 'n_yrs') |>
+  filter(n_yrs > 3) |>
+  pull(grp)
+
+save(trendgrps, file = here('data/trendgrps.RData'), compress = 'xz')
 
 # random-intercept models of score trend by metric ------------------------
 
 load(file = here('data/allyrscrs.RData'))
 
-# FDEP and HC-ES dropped: they have the fewest years of data of the eight groups
 alldat <- allyrscrs |>
-  filter(!grp %in% c('FDEP', 'HC-ES')) |>
+  filter(grp %in% trendgrps) |>
   mutate(yrctr = yr - min(yr))
 
 scrvars <- c('Abundance', 'Blade Length', 'Short Shoot Density', 'Total')
@@ -38,15 +85,9 @@ names(scrmods) <- scrvars
 save(scrmods, file = here('data/scrmods.RData'), compress = 'xz')
 
 # deviation data by species, metric, group, year -------------------------
-
-funcsurl <- 'https://raw.githubusercontent.com/tbep-tech/seagrasstransect-training-reports/main/R/funcs.R'
-funcsfl <- paste(tempdir(), 'funcs.R', sep = '/')
-download.file(funcsurl, destfile = funcsfl, quiet = TRUE)
-source(funcsfl)
-
-data(file = 'trnlns', package = 'tbeptools')
-
-yrs <- sort(unique(trndat$yr))
+# kept complete (every group, not just trendgrps) -- used as-is by
+# R/tabs.R's training summary table, and restricted to trendgrps only
+# where a consumer specifically needs it (slopetab, the scrdevmods figure)
 
 rawdiffscrs <- tibble(yr = yrs) |>
   group_nest(yr) |>
@@ -57,22 +98,19 @@ rawdiffscrs <- tibble(yr = yrs) |>
     })
   ) |>
   unnest('data') |>
-  select(-aveval, -truval, -avediff, -aveperc) |> 
-  mutate(
-    grp = gsub('^.*:\\s(.*?)\\s\\(.*$', '\\1', grpact)
-  ) |>
+  select(-aveval, -truval, -avediff, -aveperc) |>
+  mutate(grp = extract_grp(grpact)) |>
   filter(!grp %in% 'NA') |>
-  filter(grp %in% tbeptools::trnlns$MonAgency) |> 
   filter(Species %in% c('Halodule', 'Syringodium', 'Thalassia'))
 
 save(rawdiffscrs, file = here('data/rawdiffscrs.RData'), compress = 'xz')
 
 # species, metric mods ---------------------------------------------------
 
-
 spvars <- c('Abundance', 'Blade Length', 'Short Shoot Density')
 
 spdat <- rawdiffscrs |>
+  filter(grp %in% trendgrps) |>
   mutate(
     absdev  = abs(devval),
     yrctr   = yr - min(yr),
@@ -93,13 +131,6 @@ save(spmods, file = here('data/spmods.RData'))
 # for each year, drops one Site (or one group) at a time, rescores from
 # what's left, and compares to the full-sample value. see run_loo()/
 # run_loo_grp() in R/funcs.R for the mechanics and rationale
-
-scr_metric <- c(Abundance = 'abs', `Blade Length` = 'abs', `Short Shoot Density` = 'pct')
-
-# fixed historical baseline, built once from the full dataset (same as
-# production use) -- not rebuilt per Site/group dropped, since cal is meant
-# to stay fixed regardless of which Sites a given focal year's own data has
-cal <- calibrate_scr_fun(trndat, metric = scr_metric)
 
 # a dropped Site/group can occasionally remove all data for one of the
 # metrics entirely, which errors inside allgrpscr_fun -- skip that

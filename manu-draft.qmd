@@ -220,6 +220,7 @@ what didn't work:
 
 * attempts at discounting group differences by how variable they were between species.  this was done for a species across transects, small sample sizes (e.g., a species at two or three transects) made this measure noisy and not a meaningful assessment of group consistency.  Alternatively, the getween-group variation is a more meaningful measure of certainty, but it describes an entirely different source of variation. 
 
+Value of reproducible method, parameterized reports. 
 
 {{< pagebreak >}}
 
@@ -241,7 +242,7 @@ what didn't work:
 
 {{< pagebreak >}}
 
-![Results of mixed-effects models comparing group scores (top row) and absolute deviations (bottom row) over time.  The models in the top row evaluate scores as a function of time with a random group effect, whereas the models in the bottom row evaluate the absolute deviation of each group's reported value from the cross-group consensus (true) value, with random effects for species and group.  Solid lines show the overall group or group/species means and the dashed lines show individual effects for group or group by species combinations.  The bottom right plot (Short Shoot Density) is a singular fit with both species and group random-intercept variances estimated as zero, so only the fixed-effect trend is shown.  None of the relationships are significant (ns: not significant).](figs/scrdevmods.png){#fig-scrdevmods}
+![Results of mixed-effects models comparing group scores (top row) and absolute deviations (bottom row) over time, restricted to groups with more than three years of participation.  The models in the top row evaluate scores as a function of time with a random group effect, whereas the models in the bottom row evaluate the absolute deviation of each group's reported value from the cross-group consensus (true) value, with random effects for species and group.  Solid lines show the overall group or group/species means and the dashed lines show individual effects for group or group by species combinations.  The Short Shoot Density plots in both rows are singular fits, with the group random-intercept variance (top) or both species and group random-intercept variances (bottom) estimated as zero, so only the fixed-effect trend is shown.  None of the relationships are significant (ns: not significant).](figs/scrdevmods.png){#fig-scrdevmods}
 
 {{< pagebreak >}}
 
@@ -249,7 +250,7 @@ what didn't work:
 
 ```{r}
 #| label: tbl-scrmodstab
-#| tbl-cap: "Model summaries of metric score trends over time (year) by metric, with group as a random intercept. Group SD is the between group standard deviation. R² is shown for the marginal (fixed effects only) and conditional (fixed and random) effects. AIC: Akaike Information Criterion."
+#| tbl-cap: "Model summaries of metric score trends over time (year) by metric, with group as a random intercept, restricted to groups with more than three years of participation. Group SD is the between group standard deviation. R² is shown for the marginal (fixed effects only) and conditional (fixed and random) effects. Short Shoot Density is a singular fit (group random-intercept variance estimated as zero), so its conditional R² is undefined. AIC: Akaike Information Criterion."
 scrmodstab
 ```
 
@@ -257,7 +258,7 @@ scrmodstab
 
 ```{r}
 #| label: tbl-spmodstab
-#| tbl-cap: "Model summaries of absolute deviation trends over time (year) by metric, with species and group as crossed random intercepts. Units are specific to the metric (Abundance: category positions, Blade Length: cm, Short Shoot Density: percent difference). Group SD is the between group standard deviation and species SD is the between species standard deviation. R² is shown for the marginal (fixed effects only) and conditional (fixed and random) effects. Short Shoot Density is a singular fit (both random-intercept variances estimated as zero), so its conditional R² is undefined. AIC: Akaike Information Criterion."
+#| tbl-cap: "Model summaries of absolute deviation trends over time (year) by metric, with species and group as crossed random intercepts, restricted to groups with more than three years of participation. Units are specific to the metric (Abundance: category positions, Blade Length: cm, Short Shoot Density: percent difference). Group SD is the between group standard deviation and species SD is the between species standard deviation. R² is shown for the marginal (fixed effects only) and conditional (fixed and random) effects. Short Shoot Density is a singular fit (both random-intercept variances estimated as zero), so its conditional R² is undefined. AIC: Akaike Information Criterion."
 spmodstab
 ```
 
@@ -265,7 +266,7 @@ spmodstab
 
 ```{r}
 #| label: tbl-slopetab
-#| tbl-cap: "Slopes of change over time (year) for raw absolute deviations of metrics, by species and training group (identities anonymized as A-F). Colors diverge at zero within each metric (red increasing, green decreasing), with the domain scaled separately per metric since the units differ (Abundance: category positions, Blade Length: cm, Short Shoot Density: percent difference)."
+#| tbl-cap: "Slopes of change over time (year) for raw absolute deviations of metrics, by species and training group (identities anonymized as A-G; restricted to groups with more than three years of participation). Colors diverge at zero within each metric (red increasing, green decreasing), with the domain scaled separately per metric since the units differ (Abundance: category positions, Blade Length: cm, Short Shoot Density: percent difference)."
 slopetab
 ```
 
