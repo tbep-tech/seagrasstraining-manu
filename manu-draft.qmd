@@ -49,6 +49,8 @@ library(tidyr)
 
 source(here('R/funcs.R'))
 
+load(file = here('data/allyrscrs.RData'))
+
 load(file = here('tabs/scrmodstab.RData'))
 load(file = here('tabs/spmodstab.RData'))
 load(file = here('tabs/slopetab.RData'))
@@ -78,13 +80,13 @@ goals: present a reproducible framework for assessing precision among disparate 
 
 Prior to the transect monitoring that occurs each year in Tampa Bay, a one-day training event is conducted mid-June to further develop skillsets of field technicians and to assess comparability among the groups.  This training has been at the same location in Tampa Bay (in Lower Tampa Bay near the mouth, 27.649 N, 82.678 W) and has had consistent data reporting since 2020.  Additionally, most of the partners that participate in the interagency seagrass monitoring program have consistently attended each year, although it is noted that individuals from each entity have changed over time.
 
-The training each year typically includes six locations chosen by the TBEP staff to represent a range of conditions (e.g., multi-species with dense cover, solitary species with low cover, etc.).  Each location is marked with a floating buoy attached to a 1 m$^2$ quadrat staked to the bottom.  Each group visits each location that is considered an independent unit for assessment.  For all locations, seagrass and macroalgal species are recorded using the Braun-Blanquet abundance scale [0 = no cover, 0.1 = solitary, 0.5 = few shoots, 1 = 1--5\% cover, 2 = 6--25\% cover, 3 = 26--50% cover, 4 = 51--75\% cover, 5 = 76--100% cover, @braun1965].  At three of the locations, blade lengths (cm) and short shoot densities (shoots m$^{-2}$) are also estimated for each seagrass species using three separate smaller quadrats (25 cm$^2$) placed in or near the larger quadrat. Throughout this paper, the training locations are referred to as transects, although the transects in the actual monitoring after training are true transects often extending hundreds of meters from the shoreline into the bay.
+The training each year typically includes six locations chosen by the TBEP staff to represent a range of conditions (e.g., multi-species with dense cover, solitary species with low cover, etc.).  Each location is marked with a floating buoy attached to a 1 m$^2$ quadrat staked to the bottom.  Each group visits each location that is considered an independent unit for assessment.  For all locations, seagrass and macroalgal species are recorded using the Braun-Blanquet abundance scale [0 = no cover, 0.1 = solitary, 0.5 = few shoots, 1 = 1--5\% cover, 2 = 6--25\% cover, 3 = 26--50% cover, 4 = 51--75\% cover, 5 = 76--100% cover, @braun1965].  At three of the locations, blade lengths (cm) and short shoot densities (shoots m$^{-2}$) are also estimated for each seagrass species using three separate smaller quadrats (25 cm$^2$) placed in or near the larger quadrat. Additional ancillary information is also collected (e.g., epiphyte load, leaf condition, sediment type, etc.), although it is not considered for the scoring. Throughout this paper the training locations are referred to as transects, whereas the transects in the actual monitoring that occurs after training are true transects often extending hundreds of meters from the shoreline into the bay.
 
 ### Scoring
 
 The scoring method was developed to compare consistency among groups that participated in the training each year, i.e., how closely a group's results compared to the overall group mean in a given year. The method also allows an assessment of scores over time to determine if groups are becoming more or less consistent with additional training. No single external ground truth exists, so precision was used as the basis of scoring.  Additionally, the species list for a given year was based on corraboration, not unanimity across groups, such that a species was considered present if at least two groups found it at a location. This allowed for the identification of both false positives and false negatives, both of which can penalize a group's score as described below.  
 
-All scores were first calculated at the smallest scale of species/metric/location, then scaled up to a metric/location score, then finally summed to a metric score. Three scores are assigned to each group for the abundance, blade length, and short shoot density metrics. The total score is a simple average of the metric scores. The entire process to score an individual group in a given year includes ten steps, as shown in @fig-scoring_process and described in detail below.  All steps were developed using custom R functions [@rdct2025], relying heavily on the tidyverse suite of packages [@wickham2019].  
+All scores were first calculated at the smallest scale of species/metric/location, then scaled up to a species/metric score, then finally summed to a metric score. Three scores are assigned to each group for the abundance, blade length, and short shoot density metrics. The total score is a simple average of the metric scores. The entire process to score an individual group in a given year includes ten steps, as shown in @fig-scoring_process and described in detail below.  All steps were developed using custom R functions [@rdct2025], relying heavily on the tidyverse suite of packages [@wickham2019].  
 
 #### Step 1: Consensus Species List 
 
@@ -121,7 +123,7 @@ $$ {#eq-weight}
 $$
 \sigma_{s,t} = \text{SD}\left(x_{s,t}\right)
 $$ {#eq-weightsd}
-where the weight $w$ for species $s$ at transect $t$ is simply the standard deviation $\text{SD}$ of estimates across all groups for that sepcies at that transect ($x_{s,t}$).  The weighted average for the species and metric that combines the differences across transects is then:
+where the weight $w$ for species $s$ at transect $t$ is simply the standard deviation $\text{SD}$ of estimates across all groups for that species at that transect ($x_{s,t}$).  One minor difference for the short shoot density metric is that the species, transect weights in [@eq-weightsd] are calculated using the coefficient of variation, following similar reasoning as using the symmetric difference in [@eq-dst2] described above. The weighted average for the species and metric that combines the differences across transects is then:
 
 $$
 \bar{d}_s = \frac{\sum_{t=1}^{T} w_{s,t}\,d_{s,t}}{\sum_{t=1}^{T} w_{s,t}}
@@ -154,7 +156,7 @@ Each group that participated in an annual training received an online report car
 
 ### Sensitivity analysis
 
-The scoring methods were evaluated to assess robustness to group changes over time and sensitivity to *a priori* decisions.  First, all scores were recalculated for each year after removing each group sequentially following a "leave-one-out" approach since the core of the method relies on averages as group consensus.  The intent was to demonstrate that overall scores did not vary considerably based on inclusion or exclusion of individual groups. The recalculated scores were compared to those using all groups with the expectation that results should be similar.  
+The scoring methods were evaluated to assess robustness to site or group changes over time and sensitivity to *a priori* decisions.  First, all scores were recalculated for each year after removing each location or group sequentially following a "leave-one-out" approach since the core of the method relies on averages across transects as group consensus.  The intent was to demonstrate that overall scores did not vary considerably based on inclusion or exclusion of individual sites or groups. The recalculated scores were compared to those using all sites or groups in a year with the expectation that results should be similar.  
 
 Second, the choice for the number of years to use as the baseline comparison for the flooring method was also evaluated since this choice influences the range of scores that could be received each year. The score floors that were calculated each year for the three metrics were evaluated using the first two years to the first six years of training data (i.e., 2, 3, 4, 5, and 6 years of data were used to define the mean standard deviation of scores for each metric).  The expectation was the that the floors for each year and metric were relatively insensitive to the number of years used to define the baseline. 
 
@@ -163,6 +165,43 @@ Second, the choice for the number of years to use as the baseline comparison for
 A primary goal of the trainings is to ensure consistent methods are used by the different groups that collect seagrass transect data in Tampa Bay. A reasonable expectation is that groups would show less variation in their estimates over time as they participated in the trainings for successive years. To test this hypothesis, the change in the three metric scores and the change in the absolute values of the raw differences were evaluated over time using mixed-effects models.  For the former, group was used as a random intercept, whereas the latter used group and species as random intercepts since species-level information was retained in the raw differences.  An expectation is that scores would increase and raw differences would decrease over time. Trends were evaluated for the raw differences only for *Halodule*, *Syringodium*, and *Thalassia* since these were the most common species observed.  Models were constructed with the `lmer()` function from the lme4 R package [@bates15]
 
 ## Results
+
+```{r}
+grpyr <- allyrscrs |> 
+  dplyr::select(yr, grp) |> 
+  dplyr::distinct()
+nassess <- nrow(grpyr)
+aveassess <- grpyr |> 
+  dplyr::summarise(
+    cnt = dplyr::n(), 
+    .by = 'yr'
+  ) |> 
+  dplyr::pull(cnt) |> 
+  mean() |> 
+  english::english() |> 
+  as.character()
+yrcnts <- grpyr |> 
+  dplyr::summarise(
+    cnt = dplyr::n(), 
+    .by = 'grp'
+  )
+whichsev <- yrcnts |> 
+  dplyr::filter(cnt == 7) |> 
+  nrow() |> 
+  english::english() |> 
+  as.character()
+whichsix <- yrcnts |> 
+  dplyr::filter(cnt ==6) |> 
+  nrow() |> 
+  english::english() |> 
+  as.character()
+```
+
+### Scoring
+
+The methods described above were applied to every group that participated in the training from 2020 to 2026, producing `r nassess` total assessments. An average of `r aveassess` groups participated each year.  Only `r whichsev` groups participated all seven years, whereas `r whichsix` groups only missed one year of training.  Although all groups were used for the scoring process, two groups that only participated in three or less years were removed from the assessment of scores over time.  
+
+use trndat to identify number of plots/transects across years - consensus species list - abundance changes, though note that transects were selected to cover a variation in seagrass abundance/diversity and were not randomly selected.  Maybe have a table of species over time with x marks showing if they were part of the consensus list?
 
 robustness of method - year period for calibration of score floor, leave one out
 
@@ -194,7 +233,7 @@ what didn't work:
 
 {{< pagebreak >}}
 
-![Comparison of raw deviations (top row) and scores (bottom row) for each of three metrics following a leave-one-site-out analysis across all years.  The values on the y-axis represent the newly calculated raw deviations or scores after removing one site for each of all sampling years, repeated until each site was removed once.  The x-axis shows the original full-sample value for comparison.  Points are colored by year.  The $r$ values represent the correlations between the recalculated values after removing one site and the full values with all sites.  The dashed lines are 1:1 relationships.](figs/leaveoneout.png){#fig-leaveoneout}
+![Comparison of raw deviations (rows 1 and 3) and scores (rows 2 and 4) for each of three metrics following a leave-one-out analysis for (a) sites and (b) groups across all years.  The values on the y-axis represent the newly calculated raw deviations or scores after removing one site or group for each of all sampling years, repeated until each site or group was removed once.  The x-axis shows the original full-sample value for comparison.  Points are colored by year.  The $r$ values represent the correlations between the recalculated values after removing one site/group and the full values with all sites/groups.  The dashed lines are 1:1 relationships.](figs/leaveoneout.png){#fig-leaveoneout}
 
 {{< pagebreak >}}
 
