@@ -51,6 +51,7 @@ source(here('R/funcs.R'))
 
 load(file = here('data/allyrscrs.RData'))
 
+load(file = here('tabs/trainsumtab.RData'))
 load(file = here('tabs/scrmodstab.RData'))
 load(file = here('tabs/spmodstab.RData'))
 load(file = here('tabs/slopetab.RData'))
@@ -171,15 +172,37 @@ grpyr <- allyrscrs |>
   dplyr::select(yr, grp) |> 
   dplyr::distinct()
 nassess <- nrow(grpyr)
-aveassess <- grpyr |> 
+grpcnts <- grpyr |> 
   dplyr::summarise(
     cnt = dplyr::n(), 
     .by = 'yr'
-  ) |> 
+  )
+avecnt <- grpcnts |>
   dplyr::pull(cnt) |> 
-  mean() |> 
+  mean() |>
+  round() |> 
   english::english() |> 
   as.character()
+mincnt <- grpcnts |> 
+  filter(cnt == min(cnt))
+mincnt1 <- mincnt |> 
+  dplyr::pull(cnt) |> 
+  unique() |> 
+  english::english() |> 
+  as.character()
+mincnt2 <- mincnt |> 
+  dplyr::pull(yr) |> 
+  paste(collapse = ', ')
+maxcnt <- grpcnts |> 
+  filter(cnt == max(cnt))
+maxcnt1 <- maxcnt |> 
+  dplyr::pull(cnt) |> 
+  unique() |> 
+  english::english() |> 
+  as.character()
+maxcnt2 <- maxcnt |> 
+  dplyr::pull(yr) |> 
+  paste(collapse = ', ')
 yrcnts <- grpyr |> 
   dplyr::summarise(
     cnt = dplyr::n(), 
@@ -195,11 +218,23 @@ whichsix <- yrcnts |>
   nrow() |> 
   english::english() |> 
   as.character()
+nrem <- yrcnts |> 
+  filter(cnt <= 3) |> 
+  nrow() |> 
+  english::english() |> 
+  as.character()
+nkep <- yrcnts |> 
+  filter(cnt > 3) |> 
+  nrow() |> 
+  english::english() |> 
+  as.character()
 ```
 
 ### Scoring
 
-The methods described above were applied to every group that participated in the training from 2020 to 2026, producing `r nassess` total assessments. An average of `r aveassess` groups participated each year.  Only `r whichsev` groups participated all seven years, whereas `r whichsix` groups only missed one year of training.  Although all groups were used for the scoring process, two groups that only participated in three or less years were removed from the assessment of scores over time.  
+The methods described above were applied to every group that participated in the training from 2020 to 2026, producing `r nassess` total assessments [@tab-trainsumtab]. An average of `r avecnt` groups participated each year (minimum `r mincnt1` in `r mincnt2`, maximum `r maxcnt1` in `r maxcnt2`).  Only `r whichsev` groups participated all seven years, whereas `r whichsix` groups only missed one year of training.  All groups were used for the scoring process (i.e., to determine baseline variation and within-year species weights), whereas `r nrem` groups that participated in three or less years were removed from the assessment of scores over time.  Only groups that participated in the majority of years were included (n = `rnkep`) since they were most likely to benefit from repeated training and were expected to show a stronger signal in the trend models (see below).
+
+For the metric scores across years, the minimum score was raised fourteen out of the 21 metric/year combinations. The sensitivity analysis that evaluated different year groups to characterize the baseline (two to six years from 2020) also indicated that the choice for the number of years did not have a large influence on the score floor [@fig-calsens].  Years when groups performed more similarly (i.e., the floor was raised) were notable in 2021 for abundance, 2020 and 2026 for blade length, and 2020 and 2025 for short shoot density.  The minimum floor was at or closer to fifty for all other years.  Mean metric scores across groups were of course higher in years with raised minimum, scores, although high scoring years did not always correspond to higher floors (e.g., Blade Length mean score of 90 in 2021, floor at 50).
 
 use trndat to identify number of plots/transects across years - consensus species list - abundance changes, though note that transects were selected to cover a variation in seagrass abundance/diversity and were not randomly selected.  Maybe have a table of species over time with x marks showing if they were part of the consensus list?
 
@@ -215,6 +250,7 @@ limitations
 * truth is not known
 * discounting abundance scores treats ordinal positions equally, although it's shown that independent observers are more likely to agree on measurements of high abundance compared to lower values, i.e., precision is lower for low abundance (see Jan's paper). Differences at higher abundnace categories could be weighted more. 
 
+why didn't we see overall improvements over time - people from each group changing over time? I can quantify this....
 
 what didn't work:
 
@@ -247,6 +283,14 @@ Value of reproducible method, parameterized reports.
 {{< pagebreak >}}
 
 ## Tables {.unnumbered}
+
+```{r}
+#| label: tbl-trainsumtab
+#| tbl-cap: "Summary of number of groups, metric scores, raw metric deviations, and consensus species lists for seven years of training.  Metric scores are averages across the groups with the minimum floor in parentheses (maximum was 100 for all instances).  Metric raw deviations are the averages of the absolute values with the minimum and maximum values across the groups in parentheses (abundance in ordinal categories, blade length in cm, and short shoot density in shoots cm$^{-2}$).  The species consensus lists show seagrass and macroalgae with numbers indicating the number of transects where a taxa was found. CYAN: cyanobacteria; DG: drift green; DR: drift red."
+trainsumtab
+```
+
+{{< pagebreak >}}
 
 ```{r}
 #| label: tbl-scrmodstab

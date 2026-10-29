@@ -203,11 +203,24 @@ for (vr in spvars) {
   )
 }
 
+# explicit column widths (not autofit(), which only sizes to natural
+# content width and can run past the page) keep the font size fixed and
+# the table within a standard 6.5in printable page width -- a group
+# column's slope values are short enough to not need it, but a long
+# Species name can still wrap onto a second line
+page_width <- 6.5
+metric_width <- 0.9
+species_width <- 0.8
+grp_width <- (page_width - metric_width - species_width) / length(slopegrpcols)
+
 slopetab <- slopetab |>
   align(align = 'center', part = 'all') |>
   align(j = c('Metric', 'Species'), align = 'left', part = 'all') |>
   bold(part = 'header') |>
-  autofit()
+  width(j = 'Metric', width = metric_width) |>
+  width(j = 'Species', width = species_width) |>
+  width(j = slopegrpcols, width = grp_width) |>
+  set_table_properties(layout = 'fixed')
 
 save(slopetab, file = here('tabs/slopetab.RData'), compress = 'xz')
 
@@ -299,19 +312,33 @@ yrwide <- dplyr::bind_rows(
   yrwide_all |> dplyr::filter(type == 'groups'),
   blank_row('Metric scores', yrcols),
   yrwide_all |> dplyr::filter(type == 'score') |> dplyr::arrange(factor(Metric, levels = metvars)),
-  blank_row('Raw deviations', yrcols),
+  blank_row('Raw metric deviations', yrcols),
   yrwide_all |> dplyr::filter(type == 'deviation') |> dplyr::arrange(factor(Metric, levels = metvars)),
-  blank_row('SAV', yrcols),
+  blank_row('Seagrass', yrcols),
   yrwide_all |> dplyr::filter(type == 'species', Metric %in% savspp) |> dplyr::arrange(Metric),
   blank_row('Macroalgae', yrcols),
   yrwide_all |> dplyr::filter(type == 'species', Metric %in% algspp) |> dplyr::arrange(Metric)
 ) |>
   dplyr::select(-type)
 
-hdr_i <- which(yrwide$Metric %in% c('Metric scores', 'Raw deviations', 'SAV', 'Macroalgae'))
+hdr_i <- which(yrwide$Metric %in% c('Metric scores', 'Raw metric deviations', 'Seagrass', 'Macroalgae'))
 spp_i <- which(yrwide$Metric %in% c(savspp, algspp))
 
+# compact layout for the Word render: fixed font size and tighter row
+# padding (default padding leaves a lot of vertical whitespace per row
+# given how many rows this table has). Column widths are set explicitly
+# (not autofit()/fit_to_width(), which shrinks font size -- see
+# flextable:::fit_to_width -- to force content to fit instead of wrapping
+# it) and layout = 'fixed' tells Word to honor those widths rather than
+# resize the table to fit its content; a cell whose text is wider than its
+# column just wraps onto more lines, which is fine here
+page_width <- 6.5
+metric_width <- 1.2
+yr_width <- (page_width - metric_width) / length(yrcols)
+
 trainsumtab <- flextable(yrwide) |>
+  fontsize(size = 10, part = 'all') |>
+  padding(padding.top = 1, padding.bottom = 1, part = 'all') |>
   italic(i = spp_i) |>
   bold(i = c(1, hdr_i)) |>
   bold(part = 'header') |>
@@ -319,7 +346,9 @@ trainsumtab <- flextable(yrwide) |>
   align(j = 'Metric', align = 'left', part = 'all') |>
   hline(i = c(1, hdr_i[2] - 1, hdr_i[3] - 1, hdr_i[4] - 1)) |>
   set_header_labels(Metric = '') |>
-  autofit()
+  width(j = 'Metric', width = metric_width) |>
+  width(j = yrcols, width = yr_width) |>
+  set_table_properties(layout = 'fixed')
 
 for (i in hdr_i) {
   trainsumtab <- merge_at(trainsumtab, i = i, j = seq_len(length(yrcols) + 1), part = 'body')

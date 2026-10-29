@@ -321,17 +321,22 @@ extract_grp <- function(grpact) {
   dplyr::recode(grp, TBW = 'TBWI')
 }
 
-# applies extract_grp() and keeps every group with a recorded affiliation
-# -- the literal grp == 'NA' placeholder (rows with no affiliation given)
-# is the only thing excluded. this does NOT filter against
-# tbeptools::trnlns$MonAgency: that list is for the separate, ongoing
-# transect monitoring program, not this training event, and has no entry
-# at all for several real training groups (e.g. one-off participants like
-# "USF" or "SWK")
+# applies extract_grp() without dropping anything -- every row that
+# participated that year counts, including the literal grp == 'NA'
+# placeholder (an entry with no affiliation given, e.g. "2021: NA (UT)"):
+# that participant's data still fed into that year's baseline variation,
+# species weights, and consensus calculations like everyone else's, and
+# this helper is only ever used for per-year descriptive summaries (not
+# for tracking a group's identity across years, where an anonymous entry
+# can't be meaningfully attributed to the same group from one year to the
+# next -- see trendgrps in R/dat_proc.R for that separate exclusion).
+# this also does NOT filter against tbeptools::trnlns$MonAgency: that list
+# is for the separate, ongoing transect monitoring program, not this
+# training event, and has no entry at all for several real training
+# groups (e.g. one-off participants like "USF" or "SWK")
 validgrp <- function(dat) {
   dat |>
-    dplyr::mutate(grp = extract_grp(grpact)) |>
-    dplyr::filter(!grp %in% 'NA')
+    dplyr::mutate(grp = extract_grp(grpact))
 }
 
 # one cell as "mean (min, max)" (or "mean (min)" if show_max = FALSE)
