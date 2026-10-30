@@ -166,6 +166,21 @@ save(
   file = here('data/leaveoneout.RData'), compress = 'xz'
 )
 
+# full-sample vs. leave-one-out Pearson correlations, for inline reporting
+# in the manuscript text (one row per test x metric, the same r values
+# annotated on each panel of the leaveoneout figure in R/figs.R)
+leaveoneoutcors <- dplyr::bind_rows(
+  leaveoutscrcor |> dplyr::mutate(test = 'site_scr'),
+  leaveoutdevcor |> dplyr::mutate(test = 'site_dev'),
+  leaveoutscrcor_grp |> dplyr::mutate(test = 'grp_scr'),
+  leaveoutdevcor_grp |> dplyr::mutate(test = 'grp_dev')
+) |>
+  dplyr::rename(corr = r) |>
+  tidyr::separate(test, c('test', 'calc')) |> 
+  dplyr::select(test, calc, metric, corr)
+
+save(leaveoneoutcors, file = here('data/leaveoneoutcors.RData'), compress = 'xz')
+
 # floor sensitivity to calibration years ------------------------------------
 
 # one floor per metric x year, for each candidate calibration window length

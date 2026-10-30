@@ -309,6 +309,32 @@ dev_fit_and_plot <- function(varnm, spdat, spmods) {
     theme(panel.grid.minor = element_blank(), legend.position = 'bottom')
 }
 
+# one Score or Raw deviation panel for a single metric, year on x, group
+# values jittered underneath a mean +/- 95% CI summary -- built as individual
+# ggplot objects (not facet_wrap) so the Score/Raw deviation blocks can be
+# stacked with patchwork and labeled (a)/(b), same pattern as
+# make_loo_panel() above
+make_scoredev_panel <- function(summdat, alldat, m, typ, varlab, ylim = NULL) {
+
+  summ <- summdat |> dplyr::filter(type == typ, var == m)
+  jit  <- alldat  |> dplyr::filter(type == typ, var == m)
+
+  plot <- ggplot(summ, aes(x = yr, y = mean)) +
+    geom_jitter(
+      data = jit, aes(x = yr, y = val),
+      width = 0.15, height = 0, size = 0.9, alpha = 0.3, color = 'grey10',
+      inherit.aes = FALSE
+    ) +
+    geom_pointrange(aes(ymin = lwr, ymax = upr), color = '#004F7E', linewidth = 0.6, size = 0.5) +
+    labs(x = NULL, y = varlab) +
+    theme_minimal() +
+    theme(panel.grid.minor = element_blank())
+
+  if (!is.null(ylim)) plot <- plot + coord_cartesian(ylim = ylim)
+
+  plot
+}
+
 # table-building helpers ------------------------------------------------------
 
 # extracts the short group code from a grpact string (e.g. "2021: TBW (RR
