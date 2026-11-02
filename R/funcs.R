@@ -189,6 +189,37 @@ make_loo_panel <- function(loodat, loocor, m, xlab, ylab, title) {
 
 }
 
+# small adapters so the same downstream code works for either an lme4
+# merMod (scrmods, Gaussian LMM) or a glmmTMB fit (spmods, a Gamma GLMM --
+# see R/dat_proc.R for why the deviations model uses a different engine
+# than the score model)
+mod_coefs <- function(mod) if (inherits(mod, 'glmmTMB')) summary(mod)$coefficients$cond else summary(mod)$coefficients
+
+mod_confint <- function(mod, parm) if (inherits(mod, 'glmmTMB')) confint(mod, parm = parm) else confint(mod, parm = parm, quiet = TRUE)
+
+mod_grpsd <- function(mod) {
+  if (inherits(mod, 'glmmTMB')) {
+    sqrt(VarCorr(mod)$cond$grp[1, 1])
+  } else {
+    vc <- as.data.frame(VarCorr(mod))
+    sqrt(vc$vcov[vc$grp == 'grp'])
+  }
+}
+
+mod_ngrps <- function(mod) if (inherits(mod, 'glmmTMB')) unname(summary(mod)$ngrps$cond['grp']) else unname(summary(mod)$ngrps)
+
+# fitted values with (group = TRUE) or without (group = FALSE) the group
+# random effect, on the response scale. glmmTMB's predict() only accepts
+# re.form = NULL/NA/~0 (no partial formula like lme4's ~(1 | grp)), and
+# defaults to the link scale rather than the response scale
+mod_predict <- function(mod, newdata, group) {
+  if (inherits(mod, 'glmmTMB')) {
+    predict(mod, newdata = newdata, re.form = if (group) NULL else NA, type = 'response')
+  } else {
+    predict(mod, newdata = newdata, re.form = if (group) ~(1 | grp) else NA)
+  }
+}
+
 # plot the population-level trend (thick) against each group's fitted
 # trend (thin) for one score category, using the pre-fit random-intercept model
 fit_and_plot <- function(varnm, alldat, scrmods) {
@@ -238,16 +269,19 @@ fit_and_plot <- function(varnm, alldat, scrmods) {
 # same logic as fit_and_plot above (one random intercept for group, no
 # species term -- deviations are collapsed across species before
 # modeling, see spdat/spmods in R/dat_proc.R), just plotting the absolute
-# deviation outcome instead of the calibrated score
+# deviation outcome instead of the calibrated score. spmods is a Gamma
+# GLMM fit via glmmTMB rather than an lme4 merMod (see R/dat_proc.R for
+# why), so coefficient/prediction extraction goes through the mod_*()
+# adapters above instead of calling summary()/predict() directly
 dev_fit_and_plot <- function(varnm, spdat, spmods) {
 
   vardat <- spdat |> filter(var == varnm)
   mod <- spmods[[varnm]]
 
-  cfs <- summary(mod)$coefficients
+  cfs <- mod_coefs(mod)
   est <- cfs['yrctr', 'Estimate']
-  pval <- cfs['yrctr', 'Pr(>|t|)']
-  civ <- confint(mod, parm = 'yrctr', quiet = TRUE)
+  pval <- cfs['yrctr', grepl('^Pr', colnames(cfs))]
+  civ <- mod_confint(mod, parm = 'yrctr')
 
   fmt1 <- function(x) formatC(x, format = 'f', digits = 3)
   estlab <- paste0(fmt1(est), ' (', fmt1(civ[1, 1]), ', ', fmt1(civ[1, 2]), ')')
@@ -258,11 +292,11 @@ dev_fit_and_plot <- function(varnm, spdat, spmods) {
     grp = sort(unique(vardat$grp))
   )
   prdgrd$yr <- prdgrd$yrctr + min(vardat$yr)
-  prdgrd$fit <- predict(mod, newdata = prdgrd, re.form = ~(1 | grp))
+  prdgrd$fit <- mod_predict(mod, prdgrd, group = TRUE)
 
   ovrfit <- data.frame(yrctr = seq(min(vardat$yrctr), max(vardat$yrctr), length.out = 50))
   ovrfit$yr <- ovrfit$yrctr + min(vardat$yr)
-  ovrfit$fit <- predict(mod, newdata = ovrfit, re.form = NA)
+  ovrfit$fit <- mod_predict(mod, ovrfit, group = FALSE)
 
   linecols <- c('Groups' = 'grey', 'Group mean' = '#0b0b0b')
 

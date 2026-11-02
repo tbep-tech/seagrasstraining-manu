@@ -3,6 +3,7 @@ library(here)
 library(flextable)
 library(lme4)
 library(lmerTest)
+library(glmmTMB)
 library(performance)
 
 source(here('R/funcs.R'))
@@ -14,37 +15,37 @@ fmt2 <- function(x) formatC(x, format = 'f', digits = 2)
 fmt3 <- function(x) formatC(x, format = 'f', digits = 3)
 
 # table of score and deviation trend model summaries, one combined --------
+# scrmods is an lme4 merMod (Gaussian LMM), spmods is a glmmTMB fit (Gamma
+# GLMM, see R/dat_proc.R) -- modsumm() goes through the mod_*() adapters
+# in R/funcs.R so the same code handles both model classes
 
 load(file = here('data/spmods.RData'))
 
 allN <- unique(c(sapply(scrmods, nobs), sapply(spmods, nobs)))
 allGroups <- unique(c(
-  sapply(scrmods, function(mod) unname(summary(mod)$ngrps)),
-  sapply(spmods, function(mod) unname(summary(mod)$ngrps['grp']))
+  sapply(scrmods, mod_ngrps),
+  sapply(spmods, mod_ngrps)
 ))
 stopifnot(length(allN) == 1, length(allGroups) == 1)
 totab <- c('Abundance', 'Blade Length', 'Short Shoot Density')
 
 modsumm <- function(mod, fmtfun) {
 
-  cfs <- summary(mod)$coefficients
-  civ <- confint(mod, parm = 'yrctr', quiet = TRUE)
-
-  # random-intercept (among-group) variance, from the fitted model
-  vc <- as.data.frame(VarCorr(mod))
-  grpvar <- vc$vcov[vc$grp == 'grp']
+  cfs <- mod_coefs(mod)
+  civ <- mod_confint(mod, parm = 'yrctr')
+  grpsd <- mod_grpsd(mod)
 
   r2 <- r2_nakagawa(mod)
 
   est <- cfs['yrctr', 'Estimate']
   lwr <- civ[1, 1]
   upr <- civ[1, 2]
-  pval <- cfs['yrctr', 'Pr(>|t|)']
+  pval <- cfs['yrctr', grepl('^Pr', colnames(cfs))]
   sig <- case_when(pval < 0.001 ~ '**', pval < 0.05 ~ '*', TRUE ~ '')
 
   data.frame(
     `Change yr⁻¹ (95% CI)` = paste0(fmtfun(est), sig, ' (', fmtfun(lwr), ', ', fmtfun(upr), ')'),
-    `Group SD` = fmt2(sqrt(grpvar)),
+    `Group SD` = fmt2(grpsd),
     `R² (marg/cond)` = paste0(fmt2(r2$R2_marginal), ' / ', fmt2(as.numeric(r2$R2_conditional))),
     AIC = fmt1(AIC(mod)),
     check.names = FALSE
@@ -55,7 +56,7 @@ modsumm <- function(mod, fmtfun) {
 scrsumm <- lapply(totab, function(varnm) cbind(Metric = varnm, modsumm(scrmods[[varnm]], fmt1))) |>
   bind_rows() |>
   mutate(block = 'Metric scores')
-spsumm <- lapply(totab, function(varnm) cbind(Metric = varnm, modsumm(spmods[[varnm]], fmt3))) |>
+spsumm <- lapply(totab, function(varnm) cbind(Metric = varnm, modsumm(spmods[[varnm]], fmt2))) |>
   bind_rows() |>
   mutate(block = 'Raw metric deviations')
 

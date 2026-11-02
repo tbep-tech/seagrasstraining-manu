@@ -3,6 +3,7 @@ library(tidyverse)
 library(here)
 library(lme4)
 library(lmerTest)
+library(glmmTMB)
 
 source(here('R/funcs.R'))
 
@@ -111,8 +112,22 @@ save(rawdiffscrs, file = here('data/rawdiffscrs.RData'), compress = 'xz')
 # absolute values within each group x year x metric -- the same Step 7
 # collapse allgrpscr_fun(raw_diff = TRUE) performs, and the same one used
 # for the scoredevtime figure's "Raw deviation" panels above -- leaving
-# one row per group x year x metric, consistent with scrmods: a single
-# random intercept for group, no species term
+# one row per group x year x metric.
+#
+# unlike scrmods (a bounded 0-100 score, reasonably close to normal), the
+# absolute deviations are non-negative, right-skewed, and their spread
+# scales with their mean -- a Gaussian LMM on the raw scale is a poor fit
+# (heavy heteroscedasticity, a singular group-variance fit for two of the
+# three metrics) and can predict physically impossible negative
+# deviations. A Gamma GLMM (log link), fit via glmmTMB since that's the
+# engine with a well-supported Gamma family and a straightforward
+# dispersion-model extension if needed later, fixes both: variance scales
+# with the mean^2 as expected for this kind of data, and all three metrics
+# converge to a non-singular group-variance estimate instead of two of the
+# three collapsing to zero under the Gaussian LMM. Gamma requires a
+# strictly positive response, so the one exact-zero group/year/metric mean
+# (Abundance) gets a small continuity correction (half the smallest
+# nonzero value for that metric, a common convention)
 
 spvars <- c('Abundance', 'Blade Length', 'Short Shoot Density')
 
@@ -125,11 +140,50 @@ spdat <- rawdiffscrs |>
 
 spmods <- lapply(spvars, function(vr){
   vardat <- spdat |> filter(var == vr)
-  lmer(absdev ~ yrctr + (1 | grp), data = vardat)
+  eps <- min(vardat$absdev[vardat$absdev > 0]) / 2
+  vardat <- vardat |> mutate(absdev = absdev + eps * (absdev == 0))
+  glmmTMB(absdev ~ yrctr + (1 | grp), family = Gamma(link = 'log'), data = vardat)
 })
 names(spmods) <- spvars
 
 save(spmods, file = here('data/spmods.RData'))
+
+# variance (Kendall trend) tests -------------------------------------------
+# a different question than the mean-trend models above: is the SPREAD
+# (across-group SD within a year) of the metric scores and raw absolute
+# deviations shrinking over time? computed directly from alldat/spdat
+# (the same trendgrps-restricted data scrmods/spmods are fit to, not the
+# per-species or per-group values those models operate on), one SD per
+# metric x year, then a simple non-parametric Kendall trend test per
+# metric x type across the 7 yearly SD values. one-tailed (alternative =
+# 'less', i.e. tau < 0) since the hypothesis is specifically that
+# variance is DECREASING over time, not just changing in either direction
+
+yearly_sd <- dplyr::bind_rows(
+  alldat |>
+    dplyr::filter(var %in% spvars) |>
+    dplyr::summarise(sd = sd(scr, na.rm = TRUE), .by = c(var, yr)) |>
+    dplyr::mutate(type = 'Metric scores'),
+  spdat |>
+    dplyr::summarise(sd = sd(absdev, na.rm = TRUE), .by = c(var, yr)) |>
+    dplyr::mutate(type = 'Raw metric deviations')
+)
+
+kendalltests <- yearly_sd |>
+  dplyr::mutate(
+    var  = factor(var, levels = spvars),
+    type = factor(type, levels = c('Metric scores', 'Raw metric deviations'))
+  ) |>
+  dplyr::group_nest(type, var) |>
+  dplyr::mutate(
+    kt   = purrr::map(data, ~ cor.test(.x$yr, .x$sd, method = 'kendall', alternative = 'less')),
+    tau  = purrr::map_dbl(kt, ~ unname(.x$estimate)),
+    pval = purrr::map_dbl(kt, ~ .x$p.value)
+  ) |>
+  dplyr::arrange(type, var) |>
+  dplyr::select(type, metric = var, tau, pval)
+
+save(kendalltests, file = here('data/kendalltests.RData'), compress = 'xz')
 
 # leave-one-Site-out / leave-one-group-out sensitivity ---------------------
 # does any single Site or group disproportionately drive a group's score?

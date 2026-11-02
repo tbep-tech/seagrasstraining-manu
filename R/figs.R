@@ -3,6 +3,7 @@ library(here)
 library(patchwork)
 library(lme4)
 library(lmerTest)
+library(glmmTMB)
 
 source(here('R/funcs.R'))
 
