@@ -148,6 +148,33 @@ names(spmods) <- spvars
 
 save(spmods, file = here('data/spmods.RData'))
 
+# per-group x species slopes of raw deviation over time ---------------------
+# descriptive (not a model p-value) slope of abs(devval) ~ yr for each
+# group x species x metric combination, restricted to trendgrps like
+# spmods above -- used by R/tabs.R's slopetab and for inline reporting in
+# the manuscript. group identity is also anonymized here (grp_anon: A, B,
+# C...), the same convention slopetab displayed on its own before -- the
+# original grp is kept alongside it for anything that needs the real
+# identity (e.g. inline reporting in the manuscript text)
+
+slopedat <- rawdiffscrs |>
+  filter(grp %in% trendgrps) |>
+  mutate(absdev = abs(devval)) |>
+  filter(!is.na(absdev)) |>
+  summarise(
+    slope = coef(lm(absdev ~ yr))[['yr']],
+    .by = c(var, grp, Species)
+  )
+
+slopegrps <- sort(unique(slopedat$grp))
+grplabs <- setNames(LETTERS[seq_along(slopegrps)], slopegrps)
+message('slopedat group key: ', paste(names(grplabs), grplabs, sep = ' = ', collapse = ', '))
+
+slopedat <- slopedat |>
+  mutate(grp_anon = unname(grplabs[grp]))
+
+save(slopedat, file = here('data/slopedat.RData'), compress = 'xz')
+
 # variance (Kendall trend) tests -------------------------------------------
 # a different question than the mean-trend models above: is the SPREAD
 # (across-group SD within a year) of the metric scores and raw absolute

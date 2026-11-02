@@ -78,44 +78,21 @@ modstab <- as_flextable(grouped, hide_grouplabel = TRUE) |>
 save(modstab, file = here('tabs/modstab.RData'), compress = 'xz')
 
 # matrix table: slope of abs(devval) ~ yr per group x species, one combined --
+# slopedat (including the anonymized grp_anon column) comes from
+# R/dat_proc.R, shared with the manuscript for inline reporting
 
-load(file = here('data/rawdiffscrs.RData'))
-load(file = here('data/trendgrps.RData'))
+load(file = here('data/slopedat.RData'))
 
 spvars <- names(spmods)
 
-spdat <- rawdiffscrs |>
-  filter(grp %in% trendgrps) |>
-  mutate(
-    absdev  = abs(devval),
-    yrctr   = yr - min(yr),
-    Species = factor(Species)
-  ) |>
-  filter(!is.na(absdev))
-
-slopedat <- spdat |>
-  summarise(
-    slope = coef(lm(absdev ~ yr))[['yr']],
-    .by = c(var, grp, Species)
-  )
-
-slopegrpcols <- sort(unique(slopedat$grp))
-
-# anonymize group identity as A, B, C... in this table only; the mapping is
-# printed below for reference but not saved anywhere in slopetab itself
-grplabs <- setNames(LETTERS[seq_along(slopegrpcols)], slopegrpcols)
-message('slopetab group key: ', paste(names(grplabs), grplabs, sep = ' = ', collapse = ', '))
-
 slopewide <- slopedat |>
-  mutate(
-    var = factor(var, levels = spvars),
-    grp = grplabs[grp]
-  ) |>
-  tidyr::pivot_wider(names_from = grp, values_from = slope) |>
+  mutate(var = factor(var, levels = spvars)) |>
+  select(var, grp_anon, Species, slope) |>
+  tidyr::pivot_wider(names_from = grp_anon, values_from = slope) |>
   arrange(var, Species) |>
-  select(Metric = var, Species, dplyr::all_of(sort(unname(grplabs))))
+  select(Metric = var, Species, dplyr::all_of(sort(unique(slopedat$grp_anon))))
 
-slopegrpcols <- sort(unname(grplabs))
+slopegrpcols <- sort(unique(slopedat$grp_anon))
 
 slopetab <- flextable(slopewide) |>
   fontsize(size = 10, part = 'all') |>
