@@ -235,25 +235,10 @@ fit_and_plot <- function(varnm, alldat, scrmods) {
   list(plot = plot, yrng = yrng)
 }
 
-# same per-group (thin) logic as fit_and_plot above, but the per-group
-# fitted trend now varies by Species too (color). Three reference lines
-# per panel: the thin dashed lines are per-group x species conditional
-# (BLUP) predictions (re.form = NULL, both random intercepts included);
-# the solid colored lines are per-species means, averaged over grp only
-# (re.form = ~(1 | Species)), guaranteed to sit centered among that
-# species' own thin lines since they only average within that species;
-# the thick black "Group mean" line is the single fixed-effect-only
-# prediction (re.form = NA, both random intercepts excluded), a "typical
-# group, typical species" value, matching fit_and_plot's "Group mean"
-# line above. That black line need not fall anywhere near any one
-# species' own cluster, e.g. for Blade Length it happens to sit right at
-# Halodule's single highest group (a coincidence of that group's and that
-# species' estimated effects nearly canceling, not a bug). Short Shoot
-# Density's pooled model estimates exactly zero variance for both grp and
-# Species (a singular fit, see spmods summary), so all of its lines
-# legitimately collapse onto one flat line, that's a real finding (no
-# detectable group or species difference for that metric), not a
-# plotting artifact
+# same logic as fit_and_plot above (one random intercept for group, no
+# species term -- deviations are collapsed across species before
+# modeling, see spdat/spmods in R/dat_proc.R), just plotting the absolute
+# deviation outcome instead of the calibrated score
 dev_fit_and_plot <- function(varnm, spdat, spmods) {
 
   vardat <- spdat |> filter(var == varnm)
@@ -270,37 +255,21 @@ dev_fit_and_plot <- function(varnm, spdat, spmods) {
 
   prdgrd <- expand.grid(
     yrctr = seq(min(vardat$yrctr), max(vardat$yrctr), length.out = 50),
-    grp = sort(unique(vardat$grp)),
-    Species = levels(vardat$Species)
+    grp = sort(unique(vardat$grp))
   )
   prdgrd$yr <- prdgrd$yrctr + min(vardat$yr)
-  prdgrd$fit <- predict(mod, newdata = prdgrd, re.form = NULL)
-
-  sppmean <- expand.grid(
-    yrctr = seq(min(vardat$yrctr), max(vardat$yrctr), length.out = 50),
-    Species = levels(vardat$Species)
-  )
-  sppmean$yr <- sppmean$yrctr + min(vardat$yr)
-  sppmean$fit <- predict(mod, newdata = sppmean, re.form = ~(1 | Species))
+  prdgrd$fit <- predict(mod, newdata = prdgrd, re.form = ~(1 | grp))
 
   ovrfit <- data.frame(yrctr = seq(min(vardat$yrctr), max(vardat$yrctr), length.out = 50))
   ovrfit$yr <- ovrfit$yrctr + min(vardat$yr)
   ovrfit$fit <- predict(mod, newdata = ovrfit, re.form = NA)
 
-  devcols <- c(
-    Halodule = '#1b9e77', Syringodium = '#d95f02', Thalassia = '#7570b3',
-    'Group/species or overall group mean' = '#0b0b0b'
-  )
+  linecols <- c('Groups' = 'grey', 'Group mean' = '#0b0b0b')
 
   ggplot() +
-    geom_line(
-      data = prdgrd,
-      aes(x = yr, y = fit, color = Species, group = interaction(grp, Species)),
-      linewidth = 0.6, alpha = 0.7, linetype = 'dashed'
-    ) +
-    geom_line(data = sppmean, aes(x = yr, y = fit, color = Species, group = Species), linewidth = 1.3) +
-    geom_line(data = ovrfit, aes(x = yr, y = fit, color = 'Group/species or overall group mean'), linewidth = 2) +
-    scale_color_manual(values = devcols, name = NULL) +
+    geom_line(data = prdgrd, aes(x = yr, y = fit, color = 'Groups', group = grp), linewidth = 0.6, linetype = 'dashed') +
+    geom_line(data = ovrfit, aes(x = yr, y = fit, color = 'Group mean'), linewidth = 2) +
+    scale_color_manual(values = linecols, name = NULL) +
     labs(
       x = NULL, y = 'Absolute deviation', title = NULL,
       subtitle = paste0('Chg yr⁻¹: ', estlab, ', ', plab)

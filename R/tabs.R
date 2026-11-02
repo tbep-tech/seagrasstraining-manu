@@ -13,17 +13,20 @@ fmt1 <- function(x) formatC(x, format = 'f', digits = 1)
 fmt2 <- function(x) formatC(x, format = 'f', digits = 2)
 fmt3 <- function(x) formatC(x, format = 'f', digits = 3)
 
-# table of score trend model summaries by metric --------------------------
+# table of score and deviation trend model summaries, one combined --------
 
-# N and number of groups are the same across all models
-allN <- unique(sapply(scrmods, nobs))
-allGroups <- unique(sapply(scrmods, function(mod) unname(summary(mod)$ngrps)))
+load(file = here('data/spmods.RData'))
+
+allN <- unique(c(sapply(scrmods, nobs), sapply(spmods, nobs)))
+allGroups <- unique(c(
+  sapply(scrmods, function(mod) unname(summary(mod)$ngrps)),
+  sapply(spmods, function(mod) unname(summary(mod)$ngrps['grp']))
+))
 stopifnot(length(allN) == 1, length(allGroups) == 1)
 totab <- c('Abundance', 'Blade Length', 'Short Shoot Density')
 
-sumdat <- lapply(totab, function(varnm) {
+modsumm <- function(mod, fmtfun) {
 
-  mod <- scrmods[[varnm]]
   cfs <- summary(mod)$coefficients
   civ <- confint(mod, parm = 'yrctr', quiet = TRUE)
 
@@ -33,119 +36,47 @@ sumdat <- lapply(totab, function(varnm) {
 
   r2 <- r2_nakagawa(mod)
 
+  est <- cfs['yrctr', 'Estimate']
+  lwr <- civ[1, 1]
+  upr <- civ[1, 2]
+  pval <- cfs['yrctr', 'Pr(>|t|)']
+  sig <- case_when(pval < 0.001 ~ '**', pval < 0.05 ~ '*', TRUE ~ '')
+
   data.frame(
-    Metric = varnm,
-    Estimate = cfs['yrctr', 'Estimate'],
-    lwr = civ[1, 1],
-    upr = civ[1, 2],
-    pval = cfs['yrctr', 'Pr(>|t|)'],
-    grpsd = sqrt(grpvar),
-    r2marg = r2$R2_marginal,
-    r2cond = r2$R2_conditional,
-    AIC = AIC(mod)
+    `Change yr⁻¹ (95% CI)` = paste0(fmtfun(est), sig, ' (', fmtfun(lwr), ', ', fmtfun(upr), ')'),
+    `Group SD` = fmt2(sqrt(grpvar)),
+    `R² (marg/cond)` = paste0(fmt2(r2$R2_marginal), ' / ', fmt2(as.numeric(r2$R2_conditional))),
+    AIC = fmt1(AIC(mod)),
+    check.names = FALSE
   )
 
-}) |>
-  bind_rows() |>
-  mutate(
-    sig = case_when(pval < 0.001 ~ '**', pval < 0.05 ~ '*', TRUE ~ ''),
-    `Change yr⁻¹ (95% CI)` = paste0(fmt1(Estimate), sig, ' (', fmt1(lwr), ', ', fmt1(upr), ')'),
-    `Group SD` = fmt1(grpsd),
-    `R² (marg/cond)` = paste0(fmt2(r2marg), ' / ', fmt2(r2cond)),
-    AIC = fmt1(AIC)
-  ) |>
-  select(Metric, `Change yr⁻¹ (95% CI)`, `Group SD`, `R² (marg/cond)`, AIC)
+}
 
-scrmodstab <- flextable(sumdat) |>
+scrsumm <- lapply(totab, function(varnm) cbind(Metric = varnm, modsumm(scrmods[[varnm]], fmt1))) |>
+  bind_rows() |>
+  mutate(block = 'Metric scores')
+spsumm <- lapply(totab, function(varnm) cbind(Metric = varnm, modsumm(spmods[[varnm]], fmt3))) |>
+  bind_rows() |>
+  mutate(block = 'Raw metric deviations')
+
+sumdat <- bind_rows(scrsumm, spsumm)
+
+# as_grouped_data() inserts a full-width label row ahead of each block
+grouped <- as_grouped_data(sumdat, groups = 'block')
+blockrows <- which(is.na(grouped$Metric))
+
+modstab <- as_flextable(grouped, hide_grouplabel = TRUE) |>
   autofit() |>
   align(align = 'center', part = 'all') |>
   align(j = 'Metric', align = 'left', part = 'all') |>
+  bold(i = blockrows, part = 'body') |>
   add_footer_lines(values = paste0(
-    'N = ', allN, ', Groups = ', allGroups, ' for all models.'
+    'N = ', allN, ', Groups = ', allGroups, ' for each model.'
   ))
 
-save(scrmodstab, file = here('tabs/scrmodstab.RData'), compress = 'xz')
-
-# table of absolute deviation trend model summaries by metric -------------
-# unlike scrmods above, these models have two crossed random intercepts
-# (grp and Species, see dat_proc.R), so both get their own SD column.
-# N varies slightly by metric (a few missing deviations per metric, see
-# dat_proc.R), so it's reported per row instead of a single footer value;
-# Groups and Species counts are constant across models, same convention
-# as scrmods' footer
-
-load(file = here('data/spmods.RData'))
-
-allGroups2 <- unique(sapply(spmods, function(mod) unname(summary(mod)$ngrps['grp'])))
-allSpecies <- unique(sapply(spmods, function(mod) unname(summary(mod)$ngrps['Species'])))
-stopifnot(length(allGroups2) == 1, length(allSpecies) == 1)
-
-sumdat2 <- lapply(names(spmods), function(varnm) {
-
-  mod <- spmods[[varnm]]
-  cfs <- summary(mod)$coefficients
-  civ <- confint(mod, parm = 'yrctr', quiet = TRUE)
-
-  # random-intercept (among-group, among-species) variances, from the fitted model
-  vc <- as.data.frame(VarCorr(mod))
-  grpvar <- vc$vcov[vc$grp == 'grp']
-  sppvar <- vc$vcov[vc$grp == 'Species']
-
-  r2 <- r2_nakagawa(mod)
-
-  data.frame(
-    Metric = varnm,
-    N = nobs(mod),
-    Estimate = cfs['yrctr', 'Estimate'],
-    lwr = civ[1, 1],
-    upr = civ[1, 2],
-    pval = cfs['yrctr', 'Pr(>|t|)'],
-    grpsd = sqrt(grpvar),
-    sppsd = sqrt(sppvar),
-    r2marg = r2$R2_marginal,
-    r2cond = r2$R2_conditional,
-    AIC = AIC(mod)
-  )
-
-}) |>
-  bind_rows() |>
-  mutate(
-    sig = case_when(pval < 0.001 ~ '**', pval < 0.05 ~ '*', TRUE ~ ''),
-    `Change yr⁻¹ (95% CI)` = paste0(fmt3(Estimate), sig, ' (', fmt3(lwr), ', ', fmt3(upr), ')'),
-    `Group SD` = fmt2(grpsd),
-    `Species SD` = fmt2(sppsd),
-    `R² (marg/cond)` = paste0(fmt2(r2marg), ' / ', fmt2(r2cond)),
-    AIC = fmt1(AIC)
-  ) |>
-  select(Metric, N, `Change yr⁻¹ (95% CI)`, `Group SD`, `Species SD`, `R² (marg/cond)`, AIC)
-
-spmodstab <- flextable(sumdat2) |>
-  fontsize(size = 9, part = 'all') |>
-  autofit() |>
-  align(align = 'center', part = 'all') |>
-  align(j = 'Metric', align = 'left', part = 'all') |>
-  add_footer_lines(values = paste0(
-    'Groups = ', allGroups2, ', Species = ', allSpecies,
-    ' for all models. '
-  ))
-
-save(spmodstab, file = here('tabs/spmodstab.RData'), compress = 'xz')
+save(modstab, file = here('tabs/modstab.RData'), compress = 'xz')
 
 # matrix table: slope of abs(devval) ~ yr per group x species, one combined --
-# flextable with a row block per metric (rows = species within each block,
-# columns = group), rather than three separate tables. p-values are ignored
-# (each regression has only a few points, one per year that group/species
-# pair has data). this is a trend analysis (slope over time), so it's
-# restricted to trendgrps (> 3 years of participation, see R/dat_proc.R)
-# like scrmods/spmods above. Cells are colored by slope,
-# diverging red (increasing deviation, getting worse) to green (decreasing,
-# getting better), white at a slope of exactly 0, matching the direction of
-# spmodstab above (negative = improvement). A single shared color domain
-# across all three metrics wouldn't make sense (Blade Length slopes run
-# -1.9 to 1.7 cm/yr, Abundance only -0.16 to 0.25 category-positions/yr),
-# but flextable's bg() accepts a color function scoped to a row/column
-# subset, so each metric's block of rows gets its own domain within the
-# one table instead of needing three separate table objects
 
 load(file = here('data/rawdiffscrs.RData'))
 load(file = here('data/trendgrps.RData'))

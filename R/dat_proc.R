@@ -106,21 +106,26 @@ rawdiffscrs <- tibble(yr = yrs) |>
 save(rawdiffscrs, file = here('data/rawdiffscrs.RData'), compress = 'xz')
 
 # species, metric mods ---------------------------------------------------
+# rawdiffscrs holds the Step 6 per-species weighted-mean deviations
+# (devval), so species differences are collapsed first by averaging their
+# absolute values within each group x year x metric -- the same Step 7
+# collapse allgrpscr_fun(raw_diff = TRUE) performs, and the same one used
+# for the scoredevtime figure's "Raw deviation" panels above -- leaving
+# one row per group x year x metric, consistent with scrmods: a single
+# random intercept for group, no species term
 
 spvars <- c('Abundance', 'Blade Length', 'Short Shoot Density')
 
 spdat <- rawdiffscrs |>
   filter(grp %in% trendgrps) |>
-  mutate(
-    absdev  = abs(devval),
-    yrctr   = yr - min(yr),
-    Species = factor(Species)
-  ) |>
-  filter(!is.na(absdev))
+  mutate(absdev = abs(devval)) |>
+  summarise(absdev = mean(absdev, na.rm = TRUE), .by = c(var, grp, yr)) |>
+  filter(!is.nan(absdev)) |>
+  mutate(yrctr = yr - min(yr))
 
 spmods <- lapply(spvars, function(vr){
   vardat <- spdat |> filter(var == vr)
-  lmer(absdev ~ yrctr + (1 | Species) + (1 | grp), data = vardat)
+  lmer(absdev ~ yrctr + (1 | grp), data = vardat)
 })
 names(spmods) <- spvars
 

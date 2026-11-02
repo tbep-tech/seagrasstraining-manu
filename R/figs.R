@@ -134,14 +134,13 @@ alldat <- allyrscrs |>
 
 spvars <- names(spmods)
 
+# collapsed across species first (Step 7), matching spmods in R/dat_proc.R
 spdat <- rawdiffscrs |>
   filter(grp %in% trendgrps) |>
-  mutate(
-    absdev  = abs(devval),
-    yrctr   = yr - min(yr),
-    Species = factor(Species)
-  ) |>
-  filter(!is.na(absdev))
+  mutate(absdev = abs(devval)) |>
+  summarise(absdev = mean(absdev, na.rm = TRUE), .by = c(var, grp, yr)) |>
+  filter(!is.nan(absdev)) |>
+  mutate(yrctr = yr - min(yr))
 
 # combined score + deviation trend figure, 2 x 3: top row calibrated score ~
 # yr by metric (Total dropped to keep a clean 3-column row to match the

@@ -55,8 +55,7 @@ load(file = here('data/leaveoneoutcors.RData'))
 load(file = here('data/calsens.RData'))
 
 load(file = here('tabs/trainsumtab.RData'))
-load(file = here('tabs/scrmodstab.RData'))
-load(file = here('tabs/spmodstab.RData'))
+load(file = here('tabs/modstab.RData'))
 load(file = here('tabs/slopetab.RData'))
 ```
 
@@ -166,7 +165,7 @@ Second, the choice for the number of years to use as the baseline comparison for
 
 ### Assessment of scores over time
 
-A primary goal of the trainings is to ensure consistent methods are used by the different groups that collect seagrass transect data in Tampa Bay. A reasonable expectation is that groups would show less variation in their estimates over time as they participated in the trainings for successive years. To test this hypothesis, the change in the three metric scores and the change in the absolute values of the raw differences were evaluated over time using mixed-effects models.  For the former, group was used as a random intercept, whereas the latter used group and species as random intercepts since species-level information was retained in the raw differences.  An expectation is that scores would increase and raw differences would decrease over time. Trends were evaluated for the raw differences only for *Halodule*, *Syringodium*, and *Thalassia* since these were the most common species observed.  Models were constructed with the `lmer()` function from the lme4 R package [@bates15]
+A primary goal of the trainings is to ensure consistent methods are used by the different groups that collect seagrass transect data in Tampa Bay. A reasonable expectation is that groups would improve their estimates over time as they participated in the trainings for successive years. To test this hypothesis, the change in the three metric scores and the change in the absolute values of the raw differences were evaluated over time using mixed-effects models, with group used as a random intercept for both.  The first model that evaluated the metric scores used the results of step 9 and the second model that evaluated the raw metric deviations used the results of step 7 (as absolute values) (@fig-scoring_process).  An expectation is that scores would increase and raw differences would decrease over time. Trends were evaluated for the raw differences only for *Halodule*, *Syringodium*, and *Thalassia* since these were the most common species observed.  Models were constructed with the `lmer()` function from the lme4 R package [@bates15]
 
 ## Results
 
@@ -299,9 +298,7 @@ Analysis of how metric scores and raw metric deviations change with the exclusio
 
 Metric scores and raw metric deviations did not exhibit visible trends over time, although substantial inter-annual variability was observed (@tbl-trainsumtab, @fig-scoredevtime). The lowest scores did not always track the largest absolute deviations, and vice versa, due to scaling applied to the metric scores with changes in the minimum absolute scores.  The lowest mean scores for abundance, blade length, and short shoot density were 2022, 2022, and 2021, respectively and the highest mean raw metric deviations were in 2023, 2024, and 2024, respectively.  Conversely, the highest mean scores for abundance, blade length, and short shoot density were in 2021, 2026, and 2020, respectively, and the lowest mean raw metric deviations were in 2021, 2026, and 2025, respectively.
 
-Mixed-effects models evaluating linear trends in the metric scores and the raw metric deviations provided further support that trends were not evident (@fig-scrdevmods).  All six models (three for scores, three for deviations) showed no significant year effects (@tbl-scrmodstab, @tbl-spmodstab).  Slope magnitude and direction varied by model and metric, although no conclusions about the direction of the trends can be made since the uncertainty bounds included zero.  For the score models for each metric, although the year trends were not significant, the random group effects were much larger for the abundance metric model (shown by the group standard deviation and conditional R$^2$, @tbl-scrmodstab), suggesting groups were less consistent in this metric over time compared to blade length and short shoot density. For the raw score deviation models for each metric, behavior in the random effects were also notable for the abundance and blade length metrics (@tbl-spmodstab).  Species random effects had larger standard deviations than the group random effects, particularly for blade length.  
-
-....maybe redo species mod to collapse across species for consistency with the scoring mod, all other results don't even look at these raw species level deviations. would need to redo table 3 (possibly combine with table 2) and figure 6.
+Mixed-effects models evaluating linear trends in the metric scores and the raw metric deviations provided further support that trends were not evident (@fig-scrdevmods).  All six models (three for scores, three for deviations) showed no significant year effects (@tbl-modstab).  Slope magnitude and direction varied by model and metric, although no conclusions about the direction of the trends can be made since the uncertainty bounds included zero.  For the score models for each metric, although the year trends were not significant, the random group effects were much larger for the abundance metric model (shown by the group standard deviation and conditional R$^2$, @tbl-modstab), suggesting groups were less consistent in this metric over time compared to blade length and short shoot density. For the raw score deviation models, a similar pattern was evident: the group random effect was larger for abundance (conditional R$^2$ exceeding the marginal R$^2$) than for blade length or short shoot density, both of which were singular fits with group variance estimated as zero (@tbl-modstab).
 
 ## Discussion
 
@@ -345,7 +342,7 @@ Value of reproducible method, parameterized reports.
 
 {{< pagebreak >}}
 
-![Results of mixed-effects models comparing group scores (top row) and absolute deviations (bottom row) over time, restricted to groups with more than three years of participation.  The models in the top row evaluate scores as a function of time with a random group effect, whereas the models in the bottom row evaluate the absolute deviation of each group's reported value from the cross-group consensus (true) value, with random effects for species and group.  Solid lines show the overall group or group/species means and the dashed lines show individual effects for group or group by species combinations.  The Short Shoot Density plots in both rows are singular fits, with the group random-intercept variance (top) or both species and group random-intercept variances (bottom) estimated as zero, so only the fixed-effect trend is shown.  None of the relationships are significant (ns: not significant).](figs/scrdevmods.png){#fig-scrdevmods}
+![Results of mixed-effects models comparing metric scores (top row) and raw metric deviations (absolute, bottom row) over time, restricted to groups with more than three years of participation.  Both models evaluate the results as a function of time with a random group effect.  Thick black lines show the overall group mean and thin dashed grey lines show individual group effects.  Units for the raw metric deviations are ordinal categories for abundance, cm for blade length, and symmetric percent difference for short shoot density. The Short Shoot Density plot in the top row and the Blade Length and Short Shoot Density plots in the bottom row are singular fits, with the group random-intercept variance estimated as zero, so only the fixed-effect trend is shown.  None of the relationships are significant (ns: not significant).](figs/scrdevmods.png){#fig-scrdevmods}
 
 {{< pagebreak >}}
 
@@ -360,17 +357,9 @@ trainsumtab
 {{< pagebreak >}}
 
 ```{r}
-#| label: tbl-scrmodstab
-#| tbl-cap: "Model summaries of metric score trends over time (year) by metric, with group as a random intercept, restricted to groups with more than three years of participation. Group SD is the between group standard deviation. R² is shown for the marginal (fixed effects only) and conditional (fixed and random) effects. Short Shoot Density is a singular fit (group random-intercept variance estimated as zero), so its conditional R² is undefined. AIC: Akaike Information Criterion."
-scrmodstab
-```
-
-{{< pagebreak >}}
-
-```{r}
-#| label: tbl-spmodstab
-#| tbl-cap: "Model summaries of absolute deviation trends over time (year) by metric, with species and group as crossed random intercepts, restricted to groups with more than three years of participation. Units are specific to the metric (Abundance: category positions, Blade Length: cm, Short Shoot Density: percent difference). Group SD is the between group standard deviation and species SD is the between species standard deviation. R² is shown for the marginal (fixed effects only) and conditional (fixed and random) effects. Short Shoot Density is a singular fit (both random-intercept variances estimated as zero), so its conditional R² is undefined. AIC: Akaike Information Criterion."
-spmodstab
+#| label: tbl-modstab
+#| tbl-cap: "Model summaries of metric score and raw metric deviation trends over time (year) by metric, with group as a random intercept, restricted to groups with more than three years of participation. Units for the raw metric deviations are ordinal categories for abundance, cm for blade length, and symmetric percent difference for short shoot density. Group SD is the between group standard deviation. R² is shown for the marginal (fixed effects only) and conditional (fixed and random) effects. Short Shoot Density is a singular fit for the metric scores, and Blade Length and Short Shoot Density are singular fits for the raw metric deviations (group random-intercept variance estimated as zero), so their conditional R² is undefined. AIC: Akaike Information Criterion."
+modstab
 ```
 
 {{< pagebreak >}}
