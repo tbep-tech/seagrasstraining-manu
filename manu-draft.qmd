@@ -6,8 +6,15 @@ format:
 title: "Title"
 bibliography: refs.bib
 csl: estuaries-and-coasts.csl
-crossref: 
+crossref:
   fig-title: Fig.
+  custom:
+    - kind: float
+      key: suppfig
+      latex-env: suppfigure
+      reference-prefix: Fig. S
+      space-before-numbering: false
+      caption-location: bottom
 author:
   - Marcus W Beck:
       email: mbeck@tbep.org
@@ -315,7 +322,7 @@ totsgrps <- slopedat |>
 
 The methods described above were applied to every group that participated in the training from 2020 to 2026, producing `r nassess` total assessments (@tbl-trainsumtab). An average of `r avecnt` groups participated each year (minimum `r mincnt1` in `r mincnt2`, maximum `r maxcnt1` in `r maxcnt2`).  Only `r whichsev` groups participated all seven years, whereas `r whichsix` groups only missed one year of training.  All groups were used for the scoring process (i.e., to determine baseline variation and within-year species weights), whereas `r nrem` groups that participated in three or less years were removed from the assessment of scores over time.  Only groups that participated in the majority of years were included (n = `rnkep`) since they were most likely to benefit from repeated training and were expected to show a stronger signal in the trend models (see below).
 
-For the metric scores across years, the minimum score was raised fourteen out of the 21 metric/year combinations (five years for abundance, four for blade length, and five years for short shoot density, @tbl-trainsumtab). The sensitivity analysis that evaluated different year groups to characterize the baseline (two to six years from 2020) also indicated that the choice for the number of years did not have a large influence on the score floor (@fig-calsens, floors on average differed by `r calrngave` across metrics, years, and year groups).  Years when groups performed more similarly (i.e., the floor was raised) were notable in 2021 for abundance (floor of 69), 2020 and 2026 for blade length (80 and 91, respectively), and 2020 and 2025 for short shoot density (70 and 75, respectively).  The minimum floor was at or closer to fifty for all other years.  Mean metric scores across groups were of course higher in years with raised minimum, scores, although high scoring years did not always correspond to higher floors (e.g., Blade Length mean score of 90 in 2021, floor at 50).
+For the metric scores across years, the minimum score was raised fourteen out of the 21 metric/year combinations (five years for abundance, four for blade length, and five years for short shoot density, @tbl-trainsumtab). The sensitivity analysis that evaluated different year groups to characterize the baseline (two to six years from 2020) also indicated that the choice for the number of years did not have a large influence on the score floor (@suppfig-calsens, floors on average differed by `r calrngave` across metrics, years, and year groups).  Years when groups performed more similarly (i.e., the floor was raised) were notable in 2021 for abundance (floor of 69), 2020 and 2026 for blade length (80 and 91, respectively), and 2020 and 2025 for short shoot density (70 and 75, respectively).  The minimum floor was at or closer to fifty for all other years.  Mean metric scores across groups were of course higher in years with raised minimum, scores, although high scoring years did not always correspond to higher floors (e.g., Blade Length mean score of 90 in 2021, floor at 50).
 
 Species observed across all training years varied, although *Halodule*, *Syringodium*, and *Thalassia* were consistently observed at two or more transects each year (@tbl-trainsumtab).  *Halodule* was most common, occurring at four or more transects across the years, followed by *Thalassia* which also occurred at four or more transects except for 2023 (two transects), and finally *Syringodium* consistently occurring at two of the six transects each year.  *Ruppia maritima* was found at only one transect in 2023.  Macroalgae species were much less commonly observed, although this likely reflects an identification challenge rather than true abundance.  In particular, no macroalgae species were observed in the first two years, after which an effort was made by the TBEP to improve each team's ability to identify these species.  After 2021, macroalgae species were consistently identified, with *Ancanthophora sp.* being the most common.  
 
@@ -325,7 +332,7 @@ Analysis of how metric scores and raw metric deviations change with the exclusio
 
 Metric scores and raw metric deviations did not exhibit visible trends over time, although substantial inter-annual variability was observed (@tbl-trainsumtab, @fig-scoredevtime). The lowest scores did not always track the largest absolute deviations, and vice versa, due to scaling applied to the metric scores with changes in the minimum absolute scores.  The lowest mean scores for abundance, blade length, and short shoot density were 2022, 2022, and 2021, respectively and the highest mean raw metric deviations were in 2023, 2024, and 2024, respectively.  Conversely, the highest mean scores for abundance, blade length, and short shoot density were in 2021, 2026, and 2020, respectively, and the lowest mean raw metric deviations were in 2021, 2026, and 2025, respectively.
 
-Mixed-effects models evaluating trends in the metric scores and the raw metric deviations provided further support that trends were not evident (@fig-scrdevmods).  All six models (three for scores, three for deviations) showed no significant year effects (@tbl-modstab).  Slope magnitude and direction varied by model and metric, although no conclusions about the direction of the trends can be made since the uncertainty bounds included zero.  For the score models for each metric, although the year trends were not significant, the random group effects were much larger for the abundance metric model (shown by the group standard deviation and conditional R$^2$, @tbl-modstab), suggesting groups were less consistent in this metric over time compared to blade length and short shoot density (a singular fit). For the raw score deviation models, a similar pattern was evident although the models for blade length and short shoot density had singular fits for the group random effect (@tbl-modstab).  None of the Kendall trend tests that evaluated changes in the standard deviation of the scores or raw deviations for each metric over time were significant. 
+Mixed-effects models evaluating trends in the metric scores and the raw metric deviations provided further support that trends were not evident (@suppfig-scrdevmods).  All six models (three for scores, three for deviations) showed no significant year effects (@tbl-modstab).  Slope magnitude and direction varied by model and metric, although no conclusions about the direction of the trends can be made since the uncertainty bounds included zero.  For the score models for each metric, although the year trends were not significant, the random group effects were much larger for the abundance metric model (shown by the group standard deviation and conditional R$^2$, @tbl-modstab), suggesting groups were less consistent in this metric over time compared to blade length and short shoot density (a singular fit). For the raw score deviation models, a similar pattern was evident although the models for blade length and short shoot density had singular fits for the group random effect (@tbl-modstab).  None of the Kendall trend tests that evaluated changes in the standard deviation of the scores or raw deviations for each metric over time were significant. 
 
 Overall assessment of the slopes of individual group, metric, and species trends confirmed the model results above, with about half of all trends showing a decrease over time (i.e., an approximately even split for decreasing/improving trends, @tbl-slopetab).  Similarly, decreasing trends within metrics were also split with about half decreasing over time.  However, results by species within metrics revealed differing trends, such that *Thalassia* generally showed more improvements (decreasing raw metric deviations) than the other species, particularly for abundance and blade length (five of the seven groups had decreasing raw absolute deviations over time for each metric).  For the groups, five of the seven had more than half of the species/metric raw asolute deviations decreasing over time, whereas the remaining two had increasing deviations over time for all but two of the species/metric results.     
 
@@ -367,14 +374,6 @@ Value of reproducible method, parameterized reports.
 
 {{< pagebreak >}}
 
-![Sensitivity of the calculated floor for the metric scores based on length of the calibration period.  Different calibration periods of two to six years from the beginning of the period of record were evaluated and are shown by point color.  The black line is the mean floor across calibration periods for each year and metric.  Points are jittered on the x-axis within each year.](figs/calsens.png){#fig-calsens}
-
-{{< pagebreak >}}
-
-![Results of mixed-effects models comparing metric scores (top row) and raw metric deviations (absolute, bottom row) over time, restricted to groups with more than three years of participation.  Both models evaluate the results as a function of time with a random group effect.  A linear mixed-effects model (Gaussian) was used for the metric scores and a generalized linear mixed model (Gamma, log link) was used for the raw metric deviations.  Thick black lines show the overall group mean and thin dashed grey lines show individual group effects.  The bottom row's lines are curved because the underlying model is linear on the log scale rather than the response scale shown here.  Units for the raw metric deviations are ordinal categories for abundance, cm for blade length, and symmetric percent difference for short shoot density. The Short Shoot Density plot in the top row and the Blade Length and Short Shoot Density plots in the bottom row are singular fits, with the group random-intercept variance estimated as zero, so only the fixed-effect trend is shown.  None of the relationships are significant (ns: not significant).](figs/scrdevmods.png){#fig-scrdevmods}
-
-{{< pagebreak >}}
-
 ## Tables {.unnumbered}
 
 ```{r}
@@ -409,3 +408,16 @@ All data and analysis code for this manuscript is available on GitHub at <https:
 
 
 ## References {.unnumbered}
+
+::: {#refs}
+:::
+
+{{< pagebreak >}}
+
+## Supplementary Material {.unnumbered}
+
+![Sensitivity of the calculated floor for the metric scores based on length of the calibration period.  Different calibration periods of two to six years from the beginning of the period of record were evaluated and are shown by point color.  The black line is the mean floor across calibration periods for each year and metric.  Points are jittered on the x-axis within each year.](figs/calsens.png){#suppfig-calsens}
+
+{{< pagebreak >}}
+
+![Results of mixed-effects models comparing metric scores (top row) and raw metric deviations (absolute, bottom row) over time, restricted to groups with more than three years of participation.  Both models evaluate the results as a function of time with a random group effect.  A linear mixed-effects model (Gaussian) was used for the metric scores and a generalized linear mixed model (Gamma, log link) was used for the raw metric deviations.  Thick black lines show the overall group mean and thin dashed grey lines show individual group effects.  The bottom row's lines are curved because the underlying model is linear on the log scale rather than the response scale shown here.  Units for the raw metric deviations are ordinal categories for abundance, cm for blade length, and symmetric percent difference for short shoot density. The Short Shoot Density plot in the top row and the Blade Length and Short Shoot Density plots in the bottom row are singular fits, with the group random-intercept variance estimated as zero, so only the fixed-effect trend is shown.  None of the relationships are significant (ns: not significant).](figs/scrdevmods.png){#suppfig-scrdevmods}
