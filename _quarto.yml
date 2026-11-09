@@ -1,4 +1,0 @@
-project:
-  render:
-    - manu-draft.qmd
-  post-render: repair.R
