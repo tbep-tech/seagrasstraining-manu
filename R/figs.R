@@ -63,8 +63,8 @@ scrpanels_grp_comb[[3]] <- scrpanels_grp_comb[[3]] + labs(y = NULL)
 devpanels_grp_comb[[2]] <- devpanels_grp_comb[[2]] + labs(y = NULL)
 devpanels_grp_comb[[3]] <- devpanels_grp_comb[[3]] + labs(y = NULL)
 
-scrpanels_comb[[1]] <- scrpanels_comb[[1]] + labs(subtitle = '(a) Leave-one-site-out')
-scrpanels_grp_comb[[1]] <- scrpanels_grp_comb[[1]] + labs(subtitle = '(b) Leave-one-group-out')
+scrpanels_comb[[1]] <- scrpanels_comb[[1]] + labs(subtitle = '(a) Leave one out: Transect')
+scrpanels_grp_comb[[1]] <- scrpanels_grp_comb[[1]] + labs(subtitle = '(b) Leave one out: Group')
 
 p_all <- wrap_plots(
   c(scrpanels_comb, devpanels_comb, scrpanels_grp_comb, devpanels_grp_comb),
