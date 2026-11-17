@@ -68,6 +68,148 @@ trendgrps <- allyrscrs |>
 
 save(trendgrps, file = here('data/trendgrps.RData'), compress = 'xz')
 
+# group membership composition: turnover and size --------------------------
+
+crewfixes <- c(
+  'Pinellas (Mauer, Barnes, Panzer)'                 = 'Mauer, Barnes, Panzer',
+  'Campbell, Kevin'                                  = 'Kevin Campbell',
+  'Alexandra (Allie) McClory'                        = 'A. McClory',
+  'Victoria Congdon, Julie Christian (EPC)'          = 'Victoria Congdon, Julie Christian',
+  'Melissa Harrison, David (Atkins), Kaitlin Panzer' = 'Melissa Harrison, David Atkins, Kaitlin Panzer'
+)
+
+crewsplit_exceptions <- c('Kevin Campbell', 'K Harkinson', 'A. McClory')
+
+split_crew <- function(crew){
+  purrr::map(crew, function(x){
+    if (str_detect(x, ',')) {
+      str_split(x, ',\\s*')[[1]]
+    } else if (x %in% crewsplit_exceptions) {
+      x
+    } else {
+      str_split(x, '\\s+')[[1]]
+    }
+  })
+}
+
+load(file = here('data/trndat.rda'))
+load(file = here('data/trendgrps.RData'))
+
+crewdat <- trndat |>
+  mutate(grp = extract_grp(grpact)) |>
+  filter(!grp %in% 'NA', grp %in% trendgrps) |>
+  distinct(yr, grp, Crew) |>
+  mutate(Crew = str_trim(Crew)) |>
+  filter(Crew != 'City of Tampa') |>
+  mutate(Crew = if_else(Crew %in% names(crewfixes), unname(crewfixes[Crew]), Crew)) |>
+  mutate(member = split_crew(Crew)) |>
+  unnest(member) |>
+  mutate(member = str_to_lower(str_remove_all(str_trim(member), '\\.'))) |>
+  filter(member != '', !is.na(member)) |>
+  distinct(yr, grp, member)
+
+grpaliases <- tribble(
+  ~grp,     ~alias,         ~canon,
+  'TBEP',   'ss',           'sheila scolaro',
+  'TBEP',   'scs',          'sheila scolaro',
+  'TBEP',   'sheila',       'sheila scolaro',
+  'TBEP',   'jl',           'jessica lewis',
+  'TBEP',   'jol',          'jessica lewis',
+  'TBEP',   'kfw',          'kerry walia',
+  'TBEP',   'marcus',       'marcus beck',
+  'TBEP',   'mwb',          'marcus beck',
+  'TBEP',   'mb',           'marcus beck',
+  'TBEP',   'maya',         'maya burke',
+  'TBEP',   'mcb',          'maya burke',
+  'FWRI',   'ss',           'samantha scrudato',
+  'FWRI',   'ap',           'allison patranella',
+  'FWRI',   'mw',           'mike wheeler',
+  'FWRI',   'sh',           'sarah hutchen',
+  'PCDEM',  'sn',           'sarah nappier',
+  'PCDEM',  'cd',           'christine davies',
+  'PCDEM',  'am',           'alex manos',
+  'SWFWMD', 'ca',           'chris anastasiou',
+  'SWFWMD', 'c anastasiou', 'chris anastasiou',
+  'SWFWMD', 'mw',           'mark walton',
+  'SWFWMD', 'm walton',     'mark walton',
+  'SWFWMD', 't harter',     'tara harter',
+  'SWFWMD', 'e walters',    'erin walters',
+  'SWFWMD', 'w vangelder',  'will vangelder',
+  'MCNRD',  'j p nelson',   'jp nelson',
+  'TBWI',   'sh',           'serra'
+)
+
+crewdat <- crewdat |>
+  left_join(grpaliases, by = c('grp', 'member' = 'alias')) |>
+  mutate(member = coalesce(canon, member)) |>
+  select(-canon) |>
+  distinct(yr, grp, member)
+
+# year-over-year continuity: for each group-year after its group's first,
+# what fraction of that year's crew also appeared in a prior year for that
+# same group (NA for a group's first year, which has no prior year to
+# compare against)
+grpturnover <- crewdat |>
+  arrange(grp, yr) |>
+  group_by(grp) |>
+  group_modify(function(df, key){
+    yrshere <- sort(unique(df$yr))
+    purrr::map_dfr(yrshere, function(y){
+      cur <- df |> filter(yr == y) |> pull(member) |> unique()
+      prior <- df |> filter(yr < y) |> pull(member) |> unique()
+      tibble(
+        yr = y,
+        n_crew = length(cur),
+        frac_returning = if (y == min(yrshere)) NA_real_ else sum(cur %in% prior) / length(cur)
+      )
+    })
+  }) |>
+  ungroup()
+
+grpturnover_compared <- grpturnover |>
+  filter(!is.na(frac_returning))
+
+# per-group totals: how many distinct individuals has a group cycled
+# through relative to its typical crew size, plus that group's mean
+# year-over-year continuity
+grpmembership <- crewdat |>
+  summarise(
+    n_yrs             = n_distinct(yr),
+    n_distinct_people = n_distinct(member),
+    total_person_yrs  = n(),
+    .by = grp
+  ) |>
+  mutate(
+    avg_crew_size = total_person_yrs / n_yrs,
+    pct_unique    = 100 * n_distinct_people / total_person_yrs
+  ) |>
+  left_join(
+    grpturnover_compared |>
+      summarise(mean_pct_returning = 100 * mean(frac_returning), .by = grp),
+    by = 'grp'
+  )
+
+# single-row aggregate summary, for inline reporting in the manuscript text
+# (e.g. "`r round(grpmembershipsumm$median_pct_returning)`% of a group's
+# crew in a given year had also attended with that group before")
+grpmembershipsumm <- tibble(
+  n_grps                 = length(trendgrps),
+  n_grpyrs_total         = nrow(grpturnover),
+  n_grpyrs_compared      = nrow(grpturnover_compared),
+  mean_pct_returning      = 100 * mean(grpturnover_compared$frac_returning),
+  median_pct_returning    = 100 * median(grpturnover_compared$frac_returning),
+  pct_zero_turnover      = 100 * mean(grpturnover_compared$frac_returning == 0),
+  pct_full_continuity    = 100 * mean(grpturnover_compared$frac_returning == 1),
+  mean_crew_size         = mean(grpmembership$avg_crew_size),
+  mean_pct_unique         = mean(grpmembership$pct_unique),
+  total_person_yrs_all   = sum(grpmembership$total_person_yrs),
+  total_distinct_people_all = sum(grpmembership$n_distinct_people),
+  min_mean_pct_returning  = min(grpmembership$mean_pct_returning, na.rm = TRUE),
+  max_mean_pct_returning  = max(grpmembership$mean_pct_returning, na.rm = TRUE)
+)
+
+save(grpmembership, grpmembershipsumm, file = here('data/grpmembership.RData'), compress = 'xz')
+
 # random-intercept models of score trend by metric ------------------------
 
 load(file = here('data/allyrscrs.RData'))
