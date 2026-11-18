@@ -20,6 +20,7 @@ fmt3 <- function(x) formatC(x, format = 'f', digits = 3)
 # in R/funcs.R so the same code handles both model classes
 
 load(file = here('data/spmods.RData'))
+load(file = here('data/scrmods.RData'))
 
 allN <- unique(c(sapply(scrmods, nobs), sapply(spmods, nobs)))
 allGroups <- unique(c(
@@ -72,7 +73,7 @@ modstab <- as_flextable(grouped, hide_grouplabel = TRUE) |>
   align(j = 'Metric', align = 'left', part = 'all') |>
   bold(i = blockrows, part = 'body') |>
   add_footer_lines(values = paste0(
-    'N = ', allN, ', Groups = ', allGroups, ' for each model.'
+    'n = ', allN, ', Groups = ', allGroups, ' for each model.'
   ))
 
 save(modstab, file = here('tabs/modstab.RData'), compress = 'xz')

@@ -184,6 +184,11 @@ grpmembership <- crewdat |>
     pct_unique    = 100 * n_distinct_people / total_person_yrs
   ) |>
   left_join(
+    grpturnover |>
+      summarise(min_crew_size = min(n_crew), max_crew_size = max(n_crew), .by = grp),
+    by = 'grp'
+  ) |>
+  left_join(
     grpturnover_compared |>
       summarise(mean_pct_returning = 100 * mean(frac_returning), .by = grp),
     by = 'grp'
@@ -270,6 +275,9 @@ save(rawdiffscrs, file = here('data/rawdiffscrs.RData'), compress = 'xz')
 # strictly positive response, so the one exact-zero group/year/metric mean
 # (Abundance) gets a small continuity correction (half the smallest
 # nonzero value for that metric, a common convention)
+
+load(file = here('data/rawdiffscrs.RData'))
+load(file = here('data/trendgrps.RData'))
 
 spvars <- c('Abundance', 'Blade Length', 'Short Shoot Density')
 
